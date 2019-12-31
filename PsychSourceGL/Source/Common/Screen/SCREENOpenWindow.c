@@ -165,10 +165,10 @@ PsychError SCREENOpenWindow(void)
     if(PsychIsGiveHelp()){PsychGiveHelp();return(PsychError_none);};
 
     //cap the number of inputs
-    PsychErrorExit(PsychCapNumInputArgs(12));  // The maximum number of inputs
-    PsychErrorExit(PsychCapNumOutputArgs(2));  // The maximum number of outputs
-
-    //get the screen number from the windowPtrOrScreenNumber.  This also checks to make sure that the specified screen exists.
+    PsychErrorExit(PsychCapNumInputArgs(9));   //The maximum number of inputs
+    PsychErrorExit(PsychCapNumOutputArgs(2));  //The maximum number of outputs
+	screenNumber = 0;
+    //get the screen number from the windowPtrOrScreenNumber.  This also checks to make sure that the specified screen exists.  
     PsychCopyInScreenNumberArg(kPsychUseDefaultArgPosition, TRUE, &screenNumber);
     if(screenNumber==-1)
         PsychErrorExitMsg(PsychError_user, "The specified onscreen window has no ancestral screen.");
@@ -241,17 +241,18 @@ PsychError SCREENOpenWindow(void)
     // 16 bpc * 3 = 48 bpp as well:
     PsychAddValueToDepthStruct(48, &possibleDepths);
 
-    PsychInitDepthStruct(&specifiedDepth); //get the requested depth and validate it.
-    isArgThere = PsychCopyInSingleDepthArg(4, FALSE, &specifiedDepth);
-
+    PsychInitDepthStruct(&specifiedDepth); //get the requested depth and validate it.  
+    //isArgThere = PsychCopyInSingleDepthArg(4, FALSE, &specifiedDepth);
+	isArgThere = false;
     PsychInitDepthStruct(&useDepth);
     if(isArgThere){ //if the argument is there check that the screen supports it...
-        if(!PsychIsMemberDepthStruct(&specifiedDepth, &possibleDepths))
-            PsychErrorExit(PsychError_invalidDepthArg);
+		if (!PsychIsMemberDepthStruct(&specifiedDepth, &possibleDepths)) {
+			PsychErrorExit(PsychError_invalidDepthArg);
+		}
         else
             PsychCopyDepthStruct(&useDepth, &specifiedDepth);
     }else //otherwise use the default
-        PsychCopyDepthStruct(&useDepth, &currentDepth);
+        PsychCopyDepthStruct(&useDepth, &possibleDepths);
 
     // Initialize the rect argument to the screen rectangle:
     PsychGetGlobalScreenRect(screenNumber, rect);
@@ -276,180 +277,41 @@ PsychError SCREENOpenWindow(void)
         PsychGetGlobalScreenRect(screenNumber, screenrect);
         if (PsychMatchRect(screenrect, rect)) dontCaptureScreen=FALSE;
 
-        // Override for use with Quartz compositor and/or Cocoa: Must not capture/release screen, therefore
-        // set dontCaptureScreen = true to prevent screen capture/release:
-        if ((PsychPrefStateGet_ConserveVRAM() & kPsychUseAGLCompositorForFullscreenWindows) ||
-            (PsychPrefStateGet_WindowShieldingLevel() < 2000)) {
-            dontCaptureScreen = TRUE;
-        }
-    }
-    else {
-        // Non OS/X system: Always capture display.
-        dontCaptureScreen = FALSE;
-    }
+		// Override for use on f$%#$Fd OS/X 10.5.3 - 10.5.6 with NVidia GF 8800 GPU's:
+		if (PsychPrefStateGet_ConserveVRAM() & kPsychUseAGLCompositorForFullscreenWindows) dontCaptureScreen = TRUE;
+	}
+	else {
+		// Non OS/X system: Do not use AGL ;-)
+		dontCaptureScreen = FALSE;
+	}
+	
+    //find the number of specified buffers. 
 
-    //find the number of specified buffers.
-    numWindowBuffers=2;
-    PsychCopyInIntegerArg(5,FALSE,&numWindowBuffers);
+    //OS X:	The number of backbuffers is not a property of the display mode but an attribute of the pixel format.
+    //		Therefore the value is held by a window record and not a screen record.    
+
+    numWindowBuffers=2;	
+    //PsychCopyInIntegerArg(5,FALSE,&numWindowBuffers);
     if(numWindowBuffers < 1 || numWindowBuffers > kPsychMaxNumberWindowBuffers) PsychErrorExit(PsychError_invalidNumberBuffersArg);
 
     stereomode=0;
-    PsychCopyInIntegerArg(6,FALSE,&stereomode);
-    if(stereomode < 0 || stereomode > 12) PsychErrorExitMsg(PsychError_user, "Invalid stereomode provided (Valid between 0 and 12).");
-    if (stereomode!=0 && EmulateOldPTB) PsychErrorExitMsg(PsychError_user, "Sorry, stereo display functions are not supported in OS-9 PTB emulation mode.");
+    //PsychCopyInIntegerArg(6,FALSE,&stereomode);
+    if(stereomode < 0 || stereomode > 10) PsychErrorExitMsg(PsychError_user, "Invalid stereomode provided (Valid between 0 and 10).");
+	if (stereomode!=0 && EmulateOldPTB) PsychErrorExitMsg(PsychError_user, "Sorry, stereo display functions are not supported in OS-9 PTB emulation mode.");
 
     multiSample=0;
-    PsychCopyInIntegerArg(7,FALSE,&multiSample);
+    //PsychCopyInIntegerArg(7,FALSE,&multiSample);
     if(multiSample < 0) PsychErrorExitMsg(PsychError_user, "Invalid multisample value provided (Valid are positive numbers >= 0).");
     if (multiSample!=0 && EmulateOldPTB) PsychErrorExitMsg(PsychError_user, "Sorry, anti-aliasing functions are not supported in OS-9 PTB emulation mode.");
 
-    imagingmode=0;
-    PsychCopyInIntegerArg(8,FALSE,&imagingmode);
+	imagingmode=0;
+    //PsychCopyInIntegerArg(8,FALSE,&imagingmode);
     if(imagingmode < 0) PsychErrorExitMsg(PsychError_user, "Invalid imaging mode provided (See 'help PsychImagingMode' for usage info).");
-    if (imagingmode!=0 && EmulateOldPTB) PsychErrorExitMsg(PsychError_user, "Sorry, imaging pipeline functions are not supported in OS-9 PTB emulation mode.");
-
-    specialflags = 0;
-    PsychCopyInIntegerArg64(9,FALSE, &specialflags);
-    if (specialflags < 0 || (specialflags > 0 && !(specialflags & (kPsychGUIWindow | kPsychGUIWindowWMPositioned))))
-        PsychErrorExitMsg(PsychError_user, "Invalid 'specialflags' provided.");
-
-    // Alloc in optional double vector with VRR mode and parameters:
-    vrrParams = NULL;
-    if (PsychAllocInDoubleMatArg(12, FALSE, &m, &n, &p, &vrrParams)) {
-        n = m * n;
-        if (p > 1 || n < 1)
-            PsychErrorExitMsg(PsychError_user, "Invalid 'vrrParams' provided. Must be a scalar or vector of parameters.");
-
-        // Get mode parameter:
-        vrrMode = (PsychVRRModeType) vrrParams[0];
-        if (vrrMode < kPsychVRROff || vrrMode > kPsychVRROwnScheduled)
-            PsychErrorExitMsg(PsychError_user, "Invalid 'vrrParams' provided. Scalar or 1st vector component must be a mode of 0, 1, 2 or 3.");
-
-        // Find out if vrrMode is incompatible with some other requested feature:
-        if (vrrMode > kPsychVRROff) {
-            if (stereomode == kPsychOpenGLStereo || stereomode == kPsychFrameSequentialStereo)
-                PsychErrorExitMsg(PsychError_user, "Use of VRR mode for fine-grained stimulus presentation timing is incompatible with the fixed timing requirements of frame-sequential stereo presentation via stereo shutter goggles. Choose either VRR or frame-sequential stereo. Aborting.");
-
-            if (stereomode == kPsychDualWindowStereo)
-                PsychErrorExitMsg(PsychError_user, "Use of VRR mode for fine-grained stimulus presentation timing is incompatible with dual-window stereo presentation on separate screens, as their timing can't be synchronized in VRR mode, as needed for artifact-free dual-display stereo. Choose either VRR or this stereo mode. Aborting.");
-
-            if (imagingmode == kPsychNeedDualWindowOutput)
-                PsychErrorExitMsg(PsychError_user, "Use of VRR mode for fine-grained stimulus presentation timing is incompatible with Screen's own display mirroring or dual-pipe operations on separate screens. Choose either VRR or one of these. Aborting.");
-
-            if (stereomode == kPsychDualStreamStereo)
-                PsychErrorExitMsg(PsychError_user, "Use of VRR mode for fine-grained stimulus presentation timing is incompatible with dual-stream stereo presentation on special display devices. Choose either VRR or this stereo mode. Aborting.");
-
-            if (imagingmode == kPsychNeedFinalizedFBOSinks)
-                PsychErrorExitMsg(PsychError_user, "Use of VRR mode for fine-grained stimulus presentation timing is incompatible with use of finalized FBO sinks on special display devices. Choose either VRR or finalized FBO sinks. Aborting.");
-        }
-
-        // Get optional style of VRR presentation:
-        vrrStyleHint = (n >= 2) ? (PsychVRRStyleType) vrrParams[1] : kPsychVRRStyleNone;
-        if (vrrStyleHint < kPsychVRRStyleNone || vrrStyleHint > kPsychVRRStyleNone)
-            PsychErrorExitMsg(PsychError_user, "Invalid 'vrrParams' provided. 2nd vector component must be a valid vrrStyleHint code: 0 for none/auto-detect.");
-
-        // Get optional vmin, vmax duration parameters, corresponding to the displays maximum and minimum refresh rate in VRR mode:
-        vrrMinDuration = (n >= 3) ? vrrParams[2] : 0;
-        if (vrrMinDuration < 0)
-            PsychErrorExitMsg(PsychError_user, "Invalid 'vrrParams' provided. 3rd vector component must be vrrMinDuration in seconds. 0 for unknown/auto-detect, or > 0 seconds.");
-
-        // If minimum refresh duration not given, set to the one corresponding to the nominal refresh rate of the display:
-        // TODO: Should we do this override already here, or move it to the OS specific backends for more fancy ways of doing it?
-        if (vrrMinDuration == 0) {
-            if (PsychGetNominalFramerate(screenNumber) > 0)
-                vrrMinDuration = 1.0 / PsychGetNominalFramerate(screenNumber);
-            else
-                vrrMinDuration = 1.0 / 60.0; // Fake it, if we can not get it from OS.
-        }
-
-        vrrMaxDuration = (n >= 4) ? vrrParams[3] : 0;
-        if (vrrMaxDuration < 0)
-            PsychErrorExitMsg(PsychError_user, "Invalid 'vrrParams' provided. 4th vector component must be vrrMaxDuration in seconds. 0 for unknown/auto-detect, or > 0 seconds.");
-
-        if (vrrMaxDuration != 0 && vrrMaxDuration < vrrMinDuration)
-            PsychErrorExitMsg(PsychError_user, "Invalid 'vrrParams' provided. vrrMaxDuration must be 0 or greater than vrrMinDuration. 0 for unknown/auto-detect, or > 0 seconds.");
-    }
-    else {
-        // Default to VRR et al off:
-        vrrMode = kPsychVRROff;
-        vrrStyleHint = kPsychVRRStyleNone;
-        vrrMinDuration = 0.0;
-        vrrMaxDuration = 0.0;
-    }
-
-    // Optional clientRect defined? If so, we need to enable our internal panel scaler and
-    // the imaging pipeline to actually use the scaler:
-    clientRect_given = PsychCopyInRectArg(10, FALSE, clientRect);
-    if (clientRect_given) {
-        // clientRect given. The panelscaler integrated into the imaging pipeline will
-        // scale all content from the size of the drawBufferFBO (our virtual framebuffer),
-        // which is the size of the clientRect, to the true size of the onscreen windows
-        // system framebuffer - appropriately tweaked for special display modes of course.
-
-        // Validate clientRect:
-        if (IsPsychRectEmpty(clientRect)) PsychErrorExitMsg(PsychError_user, "OpenWindow called with invalid (empty) 'clientRect' argument.");
-        if (EmulateOldPTB) PsychErrorExitMsg(PsychError_user, "Sorry, panel fitter functions via 'clientRect' are not supported in OS-9 PTB emulation mode.");
-
-        // Set special imagingmode flags to signal need for full imaging pipeline
-        // and for the panel scaler. Used in PsychInitializeImagingPipeline() and
-        // to make sure PsychOpenOnscreenWindow() gets called with a multisample value
-        // of zero, so the system backbuffer isn't multisampled -- crucial for us!
-        // This will also turn PsychSetupClientRect() into a no-op:
-        imagingmode |= kPsychNeedFastBackingStore;
-
-        if (!(imagingmode & kPsychNeedClientRectNoFitter)) {
-            // Regular case: Request use of panelFitter:
-            imagingmode |= kPsychNeedGPUPanelFitter;
-        }
-        else {
-            // Special case: Use clientRect, but avoid use of panelFitter. This is
-            // useful if one wants to use a client drawing region *smaller* than
-            // the actual framebuffer - or at least smaller than inputBufferFBO et al.,
-            // but doesn't need to scale/rotate/whatever from drawBufferFBO -> inputBufferFBO,
-            // because some later image processing stage, e.g., some processing shader,
-            // will do proper sampling from the drawBufferFBO's / inputBufferFBO's restricted
-            // clientRect. This allows to avoid one extra copy/blit for panel fitting if the
-            // equivalent task is implemented by some other processing plugin.
-            // Primary use case: VR head mounted display devices which need some special
-            // input sampling anyway, but at the same time need any bit of performance they
-            // can get - ie. need to save as many GPU cycles as possible for speed:
-            imagingmode |= kPsychNeedClientRectNoFitter;
-        }
-    }
-    else if (!(imagingmode & kPsychNeedRetinaResolution)) {
-        // No explicit enable of panel fitter requested, but use of panel fitter
-        // also not explicitely forbidden by the kPsychNeedRetinaResolution flag.
-        // Check if we are displaying this window on a HiDPI "Retina" display. If
-        // so, we will enable the fitter to provide lower resolution framebuffer
-        // for userspace rendering and then upscale to native display resolution.
-        // This creates compatible behaviour to Apple OSX default behaviour and to
-        // old Psychtoolbox 3.0.11. If we are on a non-Retina standard display, then
-        // we leave the panel fitter disabled by default:
-
-        // Frontend and Backend resolution different?
-        if ((nativewidth > frontendwidth) || (nativeheight > frontendheight)) {
-            // Yes: Native backend resolution in pixels is higher than exposed
-            // frontend resolution in points. --> HiDPI / Retina display in use.
-            if (PsychPrefStateGet_Verbosity() > 2)
-                printf("PTB-INFO: Retina display. Enabling panel fitter for scaled Retina compatibility mode.\n");
-
-            if (!EmulateOldPTB) {
-                // Enable panel fitter by setting a clientRect the size and resolution
-                // of the 'rect' - user supplied or frontend resolution.
-                // NOTE: This is preliminary! The setup code below will override
-                // such an auto-generated clientRect with the fbOverrideRect, as
-                // provided by the usercode, or computed from 'rect':
-                PsychNormalizeRect(rect, clientRect);
-
-                // Enable imaging pipeline and panelfitter:
-                imagingmode |= kPsychNeedFastBackingStore;
-                imagingmode |= kPsychNeedGPUPanelFitter;
-            }
-            else {
-                printf("PTB-WARNING: Sorry, Retina displays are not supported in OS-9 PTB emulation mode. Results will likely be wrong.\n");
-            }
-        }
-    }
+	if (imagingmode!=0 && EmulateOldPTB) PsychErrorExitMsg(PsychError_user, "Sorry, imaging pipeline functions are not supported in OS-9 PTB emulation mode.");
+	
+	specialflags=0;
+    //PsychCopyInIntegerArg(9,FALSE,&specialflags);
+    if (specialflags < 0 || (specialflags > 0 && specialflags!=kPsychGUIWindow)) PsychErrorExitMsg(PsychError_user, "Invalid 'specialflags' provided.");
 
     // Filter out "used up" flags, they must not pass into PsychOpenOnscreenWindow() or PsychInitializeImagingPipeline(),
     // or they might screw up MSAA or fast offscreen window support:
@@ -476,6 +338,7 @@ PsychError SCREENOpenWindow(void)
 
     // Also need imaging pipeline for our own VRR scheduler, so request it if either user code wants the
     // scheduler or we can not exclude it will be likely chosen by auto-selection:
+	vrrMode = kPsychVRROff;
     if (vrrMode == kPsychVRRAuto || vrrMode == kPsychVRROwnScheduled) imagingmode |= kPsychNeedFastBackingStore;
 
     PsychGetScreenSettings(screenNumber, &screenSettings);
@@ -533,6 +396,9 @@ PsychError SCREENOpenWindow(void)
     // active, we force multiSample to zero: This way the system backbuffer / pixelformat
     // is enabled without multisampling support, as we do all the multisampling stuff ourselves
     // within the imaging pipeline with multisampled drawbuffer FBO's...
+	vrrMaxDuration = 0;
+	vrrMinDuration = 0;
+	vrrStyleHint = 0;
     didWindowOpen=PsychOpenOnscreenWindow(&screenSettings, &windowRecord, numWindowBuffers, stereomode, rect, ((imagingmode==0 || imagingmode==kPsychNeedFastOffscreenWindows) ? multiSample : 0),
                                           sharedContextWindow, specialflags, vrrMode, vrrStyleHint, vrrMinDuration, vrrMaxDuration);
     if (!didWindowOpen) {
@@ -547,7 +413,7 @@ PsychError SCREENOpenWindow(void)
         // We use this dirty hack to exit with an error, but without printing
         // an error message. The specific error message has been printed in
         // PsychOpenOnscreenWindow() already..
-        PsychErrMsgTxt("");
+        //PsychErrMsgTxt("");
     }
 
     // Sufficient display depth for full alpha-blending and such?
@@ -971,10 +837,10 @@ PsychError SCREENOpenWindow(void)
     #endif
 
     //Return the window index and the rect argument.
-    PsychCopyOutDoubleArg(1, FALSE, windowRecord->windowIndex);
+    //PsychCopyOutDoubleArg(1, FALSE, windowRecord->windowIndex);
 
     // Optionally return the windows clientrect:
-    PsychCopyOutRectArg(2, FALSE, windowRecord->clientrect);
+    //PsychCopyOutRectArg(2, FALSE, windowRecord->clientrect);
 
     return(PsychError_none);
 }
@@ -1019,25 +885,25 @@ PsychError SCREENPanelFitter(void)
     PsychAllocInWindowRecordArg(1, TRUE, &windowRecord);
 
     // Return optional fitter settings:
-    PsychAllocOutDoubleMatArg(1, FALSE, 1, 11, 1, &outParams);
-    for (i = 0; i < 11; i++) outParams[i] = (double) windowRecord->panelFitterParams[i];
+    //PsychAllocOutDoubleMatArg(1, FALSE, 1, 11, 1, &outParams);
+    //for (i = 0; i < 11; i++) outParams[i] = (double) windowRecord->panelFitterParams[i];
 
     // Get optional new panelFitter settings:
-    if (PsychAllocInIntegerListArg(2, FALSE, &count, &newParams)) {
-        if ((count < 8) || (count > 11)) PsychErrorExitMsg(PsychError_user, "'newParams' must be a vector with 8 to 11 integer elements.");
-        for (i = 0; i < count; i++) windowRecord->panelFitterParams[i] = newParams[i];
+    //if (PsychAllocInIntegerListArg(2, FALSE, &count, &newParams)) {
+    //    if ((count < 8) || (count > 11)) PsychErrorExitMsg(PsychError_user, "'newParams' must be a vector with 8 to 11 integer elements.");
+    //    for (i = 0; i < count; i++) windowRecord->panelFitterParams[i] = newParams[i];
 
-        // Fallback path needed (due to lack of FBO blit or non-zero rotation angle) and problematic new config setting?
-        if ((!(windowRecord->gfxcaps & kPsychGfxCapFBOBlit) || (windowRecord->panelFitterParams[8] != 0)) && (PsychPrefStateGet_Verbosity() > 2) &&
-            (windowRecord->panelFitterParams[0] != 0 || windowRecord->panelFitterParams[1] != 0 ||
-            windowRecord->panelFitterParams[2] != (int) PsychGetWidthFromRect(windowRecord->clientrect) ||
-            windowRecord->panelFitterParams[3] != (int) PsychGetHeightFromRect(windowRecord->clientrect))) {
-            // Fallback path for panelFitter in use and sourceRegion is not == full clientRect. This is an
-            // unsupported setting with the fallback, which will cause wrong results. Warn user:
-            printf("PTB-INFO: Non-default 'srcRegion' in call to Screen('PanelFitter') ignored. This is not supported when the\n");
-            printf("PTB-INFO: fallback path or display rotation for the panel fitter is in use.\n");
-        }
-    }
+    //    // Fallback path needed (due to lack of FBO blit or non-zero rotation angle) and problematic new config setting?
+    //    if ((!(windowRecord->gfxcaps & kPsychGfxCapFBOBlit) || (windowRecord->panelFitterParams[8] != 0)) && (PsychPrefStateGet_Verbosity() > 2) &&
+    //        (windowRecord->panelFitterParams[0] != 0 || windowRecord->panelFitterParams[1] != 0 ||
+    //        windowRecord->panelFitterParams[2] != (int) PsychGetWidthFromRect(windowRecord->clientrect) ||
+    //        windowRecord->panelFitterParams[3] != (int) PsychGetHeightFromRect(windowRecord->clientrect))) {
+    //        // Fallback path for panelFitter in use and sourceRegion is not == full clientRect. This is an
+    //        // unsupported setting with the fallback, which will cause wrong results. Warn user:
+    //        printf("PTB-INFO: Non-default 'srcRegion' in call to Screen('PanelFitter') ignored. This is not supported when the\n");
+    //        printf("PTB-INFO: fallback path or display rotation for the panel fitter is in use.\n");
+    //    }
+    //}
 
     return(PsychError_none);
 }

@@ -207,13 +207,13 @@ const char* PsychOSDisplayDPITrouble(unsigned int screenNumber)
             // so the best we can do is pointing out this potential source of trouble:
             sprintf(dpiTroubleMsg, "PTB-WARNING: Your version of %s is not DPI aware. Trying to use display screen %i with a pixel density other than 96 DPI\n"
                                    "would cause visual timing trouble due to DWM interference! Read 'help RetinaDisplay' for more info.\n",
-                    PSYCHTOOLBOX_SCRIPTING_LANGUAGE_NAME, screenNumber);
+                    "", screenNumber);
         }
         else {
             // Ok, lack of DPI awareness is definitely the cause of the trouble:
             sprintf(dpiTroubleMsg, "PTB-WARNING: Your version of %s is not DPI aware, but you try to use display screen %i with a density (%i, %i) other than 96 DPI.\n"
                                    "Expect visual timing trouble! Read 'help RetinaDisplay' for more info.\n",
-                    PSYCHTOOLBOX_SCRIPTING_LANGUAGE_NAME, screenNumber, monitorDPI >> 16, monitorDPI & 0xffff);
+                    "", screenNumber, monitorDPI >> 16, monitorDPI & 0xffff);
         }
     }
 
@@ -240,7 +240,7 @@ const char* PsychOSDisplayDPITrouble(unsigned int screenNumber)
                 sprintf(dpiTroubleMsg, "PTB-WARNING: Your version of %s is not per monitor DPI aware, but you try to use a secondary (non-primary) display screen %i\n"
                                        "PTB-WARNING: of unknown pixel density. This will make visual timing trouble if that display does not have the same (%i, %i) DPI\n"
                                        "as the primary screen. Read 'help RetinaDisplay' for more info.\n",
-                                        PSYCHTOOLBOX_SCRIPTING_LANGUAGE_NAME, screenNumber, primaryDPI >> 16, primaryDPI & 0xffff);
+                                        "", screenNumber, primaryDPI >> 16, primaryDPI & 0xffff);
             }
         }
         else {
@@ -248,7 +248,7 @@ const char* PsychOSDisplayDPITrouble(unsigned int screenNumber)
             sprintf(dpiTroubleMsg, "PTB-WARNING: Your version of %s is not per monitor DPI aware, but you try to use display screen %i with a density (%i, %i)\n"
                                    "PTB-WARNING: other than the (%i,%i) DPI set on the primary display. Expect visual timing trouble!\n"
                                    "PTB-WARNING: Read 'help RetinaDisplay' for more info.\n",
-                                    PSYCHTOOLBOX_SCRIPTING_LANGUAGE_NAME, screenNumber, monitorDPI >> 16,
+                                    "", screenNumber, monitorDPI >> 16,
                                     monitorDPI & 0xffff, primaryDPI >> 16, primaryDPI & 0xffff);
         }
     }
@@ -314,7 +314,7 @@ void InitializePsychDisplayGlue(void)
     if (((PsychPrefStateGet_Verbosity() > 2) && PsychOSIsMSWin8()) || (PsychPrefStateGet_Verbosity() > 3)) {
         switch (process_dpi_awareness) {
             case PROCESS_DPI_UNAWARE:
-                printf("PTB-INFO: Your version of %s is not DPI aware. On Windows-8 or later, without DPI awareness, fullscreen\n", PSYCHTOOLBOX_SCRIPTING_LANGUAGE_NAME);
+                printf("PTB-INFO: Your version of %s is not DPI aware. On Windows-8 or later, without DPI awareness, fullscreen\n", "");
                 printf("PTB-INFO: onscreen windows will only work properly when displayed on displays with 96 DPI effective pixel density.\n");
                 printf("PTB-INFO: Displaying on anything other than a 96 DPI display will cause mysterious visual timing problems, sync failures etc.\n");
                 printf("PTB-INFO: Read 'help RetinaDisplay' for more info on this topic.\n");
@@ -322,7 +322,7 @@ void InitializePsychDisplayGlue(void)
 
             case PROCESS_SYSTEM_DPI_AWARE:
                 if ((PsychGetNumDisplays() > 1) || (PsychPrefStateGet_Verbosity() > 3)) {
-                    printf("PTB-INFO: Your version of %s is global system DPI aware. On Windows-8 or later, fullscreen onscreen windows will only work \n", PSYCHTOOLBOX_SCRIPTING_LANGUAGE_NAME);
+                    printf("PTB-INFO: Your version of %s is global system DPI aware. On Windows-8 or later, fullscreen onscreen windows will only work \n", "");
                     printf("PTB-INFO: properly timing-wise when displayed on displays with the same pixel density as your systems primary display monitor.\n");
                     printf("PTB-INFO: For your multi-display setup the stimulus display monitor must have a DPI of (%i, %i), matching that of\n", primaryDPI >> 16, primaryDPI & 0xffff);
                     printf("PTB-INFO: your primary display monitor. Ideally you will only display on the primary display in the first place.\n");
@@ -333,7 +333,7 @@ void InitializePsychDisplayGlue(void)
 
             case PROCESS_PER_MONITOR_DPI_AWARE:
                 if (PsychPrefStateGet_Verbosity() > 3)
-                    printf("PTB-INFO: Your version of %s is per monitor DPI aware. This should avoid DPI display scaling related problems on any current version of MS-Windows.\n", PSYCHTOOLBOX_SCRIPTING_LANGUAGE_NAME);
+                    printf("PTB-INFO: Your version of %s is per monitor DPI aware. This should avoid DPI display scaling related problems on any current version of MS-Windows.\n", "");
             break;
         }
     }

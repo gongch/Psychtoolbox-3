@@ -1114,7 +1114,9 @@ int PsychFinalizeNewMovieFile(int movieHandle)
 
 #else
 
-// Surrogates to prevent linker failure if built without GStreamer:
+// GStreamer support disabled at compile time.
+
+// This is Linux, but without GStreamer support compiled in: Implement dummy functions:
 void PsychMovieWritingInit(void) { return; }
 void PsychExitMovieWriting(void) { return; }
 void PsychDeleteAllMovieWriters(void) { return; }
@@ -1153,5 +1155,4 @@ psych_bool PsychAddAudioBufferToMovie(int moviehandle, unsigned int nrChannels, 
     return FALSE;
 }
 
-// End of surrogate routines.
 #endif

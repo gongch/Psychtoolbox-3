@@ -201,64 +201,64 @@ PsychError SCREENFlip(void)
     // Give online help, if requested:
     if(PsychIsGiveHelp()){PsychGiveHelp();return(PsychError_none);};
 
-    PsychErrorExit(PsychCapNumInputArgs((opmode < 2)  ? 5 : 1));        // The maximum number of inputs
-    PsychErrorExit(PsychRequireNumInputArgs(1));                        // The required number of inputs
-    PsychErrorExit(PsychCapNumOutputArgs(5));                           // The maximum number of outputs
-
-    // Get the window record from the window record argument and get info from the window record
-    PsychAllocInWindowRecordArg(kPsychUseDefaultArgPosition, TRUE, &windowRecord);
-
-    if (!PsychIsOnscreenWindow(windowRecord)) PsychErrorExitMsg(PsychError_user, "Flip called on something else than an onscreen window. You can only flip onscreen windows.");
-    if(windowRecord->windowType!=kPsychDoubleBufferOnscreen) PsychErrorExitMsg(PsychError_user, "Flip called on window without backbuffers. Specify numberOfBuffers=2 in Screen('OpenWindow') if you want to use Flip.");
-
-    // Only retrieve additional arguments if this isn't a finish on an async flip:
-    if ((opmode != 2) && (opmode != 3)) {
-        // Query optional dont_clear argument: 0 (default) clear backbuffer to background color after flip.
-        // 1 == Restore backbuffer to state before flip - this allows incremental drawing/updating of stims.
-        dont_clear=0;
-        PsychCopyInIntegerArg(3,FALSE,&dont_clear);
-        if(dont_clear < 0 || dont_clear > 2) {
-            PsychErrorExitMsg(PsychError_user, "Only 'dontclear' values 0 (== clear after flip), 1 (== don't clear) and 2 (== don't do anything) are supported");
-        }
-
-        // Query optional vbl_synclevel argument: 0 (default) Synchronize flip to VBL and wait (block) for VBL onset.
-        // 1 == Synchronize flip to VBL, but don' wait for flip to happen -- timestamps are invalid.
-        // 2 == Don't sync to the retrace *at all* Flip as soon as stimulus is ready.
-        // EXPERIMENTAL modes:
-        // 3 == Like 0, but use spin-waiting to busy wait for VBL onset -> Non-blocking -> Low delay -> But dangerous!
-        vbl_synclevel=0;
-        PsychCopyInIntegerArg(4,FALSE,&vbl_synclevel);
-        if(vbl_synclevel < 0 || vbl_synclevel > 3) {
-            PsychErrorExitMsg(PsychError_user, "Only 'dontsync' values 0 (== fully synchronize with VBL), 1 (== don't wait for VBL) and 2 (== Ignore VBL) are supported");
-        }
-
-        // Query optional multiflip argument: 0 (default) Only flip the requested onscreen window.
-        // 1 = Flip *all* onscreen windows simultaneously, but individually synced to their respective VBL onset.
-        // -> This is tear- and flicker-free and ressource efficient due to its blocking nature, but it requires
-        // displays that retrace in sync, otherwise stimulus onset on each display can happen phase-shifted to other
-        // displays.
-        // 2 = Like 1, but we wait for VBL onset on requested onscreen window and then immediately flip all other
-        // windows without waiting for their respective retrace -> All stimuli show up at the same time/with minimal
-        // time delay, but if monitors are not in-phase, some of them will tear/flicker.
-        multiflip=0;
-        PsychCopyInIntegerArg(5,FALSE,&multiflip);
-        if(multiflip < 0 || multiflip > 2)
-            PsychErrorExitMsg(PsychError_user, "Only 'multiflip' values 0 (== don't multiflip), 1 (== multiflip method 1) and 2 (== multiflip method 2) are supported");
-        if (multiflip==2 && vbl_synclevel!=0 && vbl_synclevel!=3) {
-            PsychErrorExitMsg(PsychError_user, "Only 'dontsync' values 0 and 3 are allowed when multiflip is set to 2.");
-        }
-
-        // Current multiflip > 0 implementation is not thread-safe, so we don't support this in async flip mode:
-        if ((multiflip != 0) && (opmode != 0))  PsychErrorExitMsg(PsychError_user, "Using a non-zero 'multiflip' flag while starting an asynchronous flip! Sorry, this is currently not possible.\n");
+	//PsychErrorExit(PsychCapNumInputArgs((opmode < 2)  ? 5 : 1));		// The maximum number of inputs
+	//PsychErrorExit(PsychRequireNumInputArgs(1));						// The required number of inputs
+	//PsychErrorExit(PsychCapNumOutputArgs(5));							// The maximum number of outputs
+	
+	// Get the window record from the window record argument and get info from the window record
+	PsychAllocInWindowRecordArg(kPsychUseDefaultArgPosition, TRUE, &windowRecord);
+	
+	if (!PsychIsOnscreenWindow(windowRecord)) PsychErrorExitMsg(PsychError_user, "Flip called on something else than an onscreen window. You can only flip onscreen windows.");
+	if(windowRecord->windowType!=kPsychDoubleBufferOnscreen) PsychErrorExitMsg(PsychError_user, "Flip called on window without backbuffers. Specify numberOfBuffers=2 in Screen('OpenWindow') if you want to use Flip.");
+	
+	// Only retrieve additional arguments if this isn't a finish on an async flip:
+	if ((opmode != 2) && (opmode != 3)) {
+		// Query optional dont_clear argument: 0 (default) clear backbuffer to background color after flip.
+		// 1 == Restore backbuffer to state before flip - this allows incremental drawing/updating of stims.
+		dont_clear=0;
+		//PsychCopyInIntegerArg(3,FALSE,&dont_clear);
+		//if(dont_clear < 0 || dont_clear > 2) {
+		//	PsychErrorExitMsg(PsychError_user, "Only 'dontclear' values 0 (== clear after flip), 1 (== don't clear) and 2 (== don't do anything) are supported");
+		//}
+		
+		// Query optional vbl_synclevel argument: 0 (default) Synchronize flip to VBL and wait (block) for VBL onset.
+		// 1 == Synchronize flip to VBL, but don' wait for flip to happen -- timestamps are invalid.
+		// 2 == Don't sync to the retrace *at all* Flip as soon as stimulus is ready.
+		// EXPERIMENTAL modes:
+		// 3 == Like 0, but use spin-waiting to busy wait for VBL onset -> Non-blocking -> Low delay -> But dangerous!
+		vbl_synclevel=0;
+		//PsychCopyInIntegerArg(4,FALSE,&vbl_synclevel);
+		//if(vbl_synclevel < 0 || vbl_synclevel > 3) {
+		//	PsychErrorExitMsg(PsychError_user, "Only 'dontsync' values 0 (== fully synchronize with VBL), 1 (== don't wait for VBL) and 2 (== Ignore VBL) are supported");
+		//}
+		
+		// Query optional multiflip argument: 0 (default) Only flip the requested onscreen window.
+		// 1 = Flip *all* onscreen windows simultaneously, but individually synced to their respective VBL onset.
+		// -> This is tear- and flicker-free and ressource efficient due to its blocking nature, but it requires
+		// displays that retrace in sync, otherwise stimulus onset on each display can happen phase-shifted to other
+		// displays.
+		// 2 = Like 1, but we wait for VBL onset on requested onscreen window and then immediately flip all other
+		// windows without waiting for their respective retrace -> All stimuli show up at the same time/with minimal
+		// time delay, but if monitors are not in-phase, some of them will tear/flicker.
+		multiflip=0;
+		//PsychCopyInIntegerArg(5,FALSE,&multiflip);
+		//if(multiflip < 0 || multiflip > 2)
+		//	PsychErrorExitMsg(PsychError_user, "Only 'multiflip' values 0 (== don't multiflip), 1 (== multiflip method 1) and 2 (== multiflip method 2) are supported");
+		//if (multiflip==2 && vbl_synclevel!=0 && vbl_synclevel!=3) {
+		//	PsychErrorExitMsg(PsychError_user, "Only 'dontsync' values 0 and 3 are allowed when multiflip is set to 2.");
+		//}
+		
+		// Current multiflip > 0 implementation is not thread-safe, so we don't support this in async flip mode:
+		if ((multiflip != 0) && (opmode != 0))  PsychErrorExitMsg(PsychError_user, "Using a non-zero 'multiflip' flag while starting an asynchronous flip! Sorry, this is currently not possible.\n");
 
         // Query optional flipwhen argument:
         // 0 (default value) == Flip at next vertical retrace and sync to VBL. This is the old PTB behaviour as of PTB 1.0.42.
-        // flipwhen>0 == Sleep/Wait until system time "flipwhen" and then flip at the next VBL after time "flipwhen".
-        flipwhen=0;
-        PsychCopyInDoubleArg(2,FALSE,&flipwhen);
-        if(flipwhen < 0) {
-            PsychErrorExitMsg(PsychError_user, "Only 'when' values greater or equal to 0 are supported");
-        }
+		// flipwhen>0 == Sleep/Wait until system time "flipwhen" and then flip at the next VBL after time "flipwhen".
+		flipwhen=0;
+		//PsychCopyInDoubleArg(2,FALSE,&flipwhen);
+		//if(flipwhen < 0) {
+		//	PsychErrorExitMsg(PsychError_user, "Only 'when' values greater or equal to 0 are supported");
+		//}
 
         PsychGetAdjustedPrecisionTimerSeconds(&tNow);
         if (flipwhen - tNow > 1000) {
@@ -295,22 +295,22 @@ PsychError SCREENFlip(void)
         // sense as userspace expects the results from the synchronous flip we will
         // schedule next.
         if (opmode == 1) {
-            vbl_timestamp    = (flipstate) ? flipRequest->vbl_timestamp : 0.0;
-            time_at_onset    = flipRequest->time_at_onset;
-            time_at_flipend  = flipRequest->time_at_flipend;
-            miss_estimate    = flipRequest->miss_estimate;
-            beamposatflip    = flipRequest->beamPosAtFlip;
-
-            // Return timestamp at start of VBL time:
-            PsychCopyOutDoubleArg(1, FALSE, vbl_timestamp);
-            // Return timestamp at stimulus onset time:
-            PsychCopyOutDoubleArg(2, FALSE, time_at_onset);
-            // Return time when Flip ended:
-            PsychCopyOutDoubleArg(3, FALSE, time_at_flipend);
-            // Return current estimate of deadline miss, if any:
-            PsychCopyOutDoubleArg(4, FALSE, miss_estimate);
-            // Return beam position at VBL time:
-            PsychCopyOutDoubleArg(5, FALSE, (double) beamposatflip);
+            vbl_timestamp	= (flipstate) ? flipRequest->vbl_timestamp : 0.0;
+            time_at_onset	= flipRequest->time_at_onset;
+            time_at_flipend = flipRequest->time_at_flipend;
+            miss_estimate	= flipRequest->miss_estimate;
+            beamposatflip	= flipRequest->beamPosAtFlip;
+            
+            //// Return timestamp at start of VBL time:
+            //PsychCopyOutDoubleArg(1, FALSE, vbl_timestamp);
+            //// Return timestamp at stimulus onset time:
+            //PsychCopyOutDoubleArg(2, FALSE, time_at_onset);
+            //// Return time when Flip ended:
+            //PsychCopyOutDoubleArg(3, FALSE, time_at_flipend);
+            //// Return current estimate of deadline miss, if any:
+            //PsychCopyOutDoubleArg(4, FALSE, miss_estimate);
+            //// Return beam position at VBL time:
+            //PsychCopyOutDoubleArg(5, FALSE, (double) beamposatflip);
         }
 
         // This info needs to be provided for flip mechanism:
@@ -345,16 +345,16 @@ PsychError SCREENFlip(void)
             beamposatflip    = flipRequest->beamPosAtFlip;
 
             // Return timestamp at start of VBL time:
-            PsychCopyOutDoubleArg(1, FALSE, vbl_timestamp);
-            // Return timestamp at stimulus onset time:
-            PsychCopyOutDoubleArg(2, FALSE, time_at_onset);
-            // Return time when Flip ended:
-            PsychCopyOutDoubleArg(3, FALSE, time_at_flipend);
-            // Return current estimate of deadline miss, if any:
-            PsychCopyOutDoubleArg(4, FALSE, miss_estimate);
-            // Return beam position at VBL time:
-            PsychCopyOutDoubleArg(5, FALSE, (double) beamposatflip);
-
+            //PsychCopyOutDoubleArg(1, FALSE, vbl_timestamp);
+            //// Return timestamp at stimulus onset time:
+            //PsychCopyOutDoubleArg(2, FALSE, time_at_onset);
+            //// Return time when Flip ended:
+            //PsychCopyOutDoubleArg(3, FALSE, time_at_flipend);
+            //// Return current estimate of deadline miss, if any:
+            //PsychCopyOutDoubleArg(4, FALSE, miss_estimate);
+            //// Return beam position at VBL time:
+            //PsychCopyOutDoubleArg(5, FALSE, (double) beamposatflip);
+            
             // We're done:
             return(PsychError_none);
         }
@@ -363,44 +363,44 @@ PsychError SCREENFlip(void)
         flipRequest->opmode    = opmode;
     }
 
-    // Execute the flip request with the indirect routine: In opmode == 0 (Synchronous flip)
-    // this will block until flip is done, then return with the results. In async mode it
-    // will dispatch the flip to the helper thread, then return immediately. In async end
-    // or async poll mode, it will either block until async op finished, or return after
-    // polling with a FALSE result, telling that not yet finished:
-    flipstate = PsychFlipWindowBuffersIndirect(windowRecord);
-
-    // Only have return args in synchronous mode or in return path from end/successfull poll of async flip:
-    if (opmode != 1) {
-        // Async flip is either zero in synchronous mode, or it's 2 if an async flip
-        // successfully finished:
-        if ((flipRequest->asyncstate!=0) && (flipRequest->asyncstate!=2) && (flipstate)) {
-            printf("PTB-ERROR: flipRequest->asyncState has impossible value %i at end of flipop! This is a PTB DESIGN BUG!", flipRequest->asyncstate);
-            PsychErrorExitMsg(PsychError_internal, "flipRequest->asyncState has impossible value at end of flipop! This is a PTB DESIGN BUG!");
-        }
-
-        // Reset it to zero, ie. ready for new adventures ;-)
-        if (flipstate) flipRequest->asyncstate=0;
-
-        // Return return arguments from flip: We return a zero vbl_timestamp in case a poll for flip completion failed.
-        // That indicates that flip not yet finished and all other return values are invalid:
-        vbl_timestamp    = (flipstate) ? flipRequest->vbl_timestamp : 0.0;
-        time_at_onset    = flipRequest->time_at_onset;
-        time_at_flipend  = flipRequest->time_at_flipend;
-        miss_estimate    = flipRequest->miss_estimate;
-        beamposatflip    = flipRequest->beamPosAtFlip;
-
-        // Return timestamp at start of VBL time:
-        PsychCopyOutDoubleArg(1, FALSE, vbl_timestamp);
-        // Return timestamp at stimulus onset time:
-        PsychCopyOutDoubleArg(2, FALSE, time_at_onset);
-        // Return time when Flip ended:
-        PsychCopyOutDoubleArg(3, FALSE, time_at_flipend);
-        // Return current estimate of deadline miss, if any:
-        PsychCopyOutDoubleArg(4, FALSE, miss_estimate);
-        // Return beam position at VBL time:
-        PsychCopyOutDoubleArg(5, FALSE, (double) beamposatflip);
-
+	// Execute the flip request with the indirect routine: In opmode == 0 (Synchronous flip)
+	// this will block until flip is done, then return with the results. In async mode it
+	// will dispatch the flip to the helper thread, then return immediately. In async end
+	// or async poll mode, it will either block until async op finished, or return after
+	// polling with a FALSE result, telling that not yet finished:
+	flipstate = PsychFlipWindowBuffersIndirect(windowRecord);
+	
+	// Only have return args in synchronous mode or in return path from end/successfull poll of async flip:
+	if (opmode != 1) {
+		// Async flip is either zero in synchronous mode, or it's 2 if an async flip
+		// successfully finished:
+		if ((flipRequest->asyncstate!=0) && (flipRequest->asyncstate!=2) && (flipstate)) {
+			printf("PTB-ERROR: flipRequest->asyncState has impossible value %i at end of flipop! This is a PTB DESIGN BUG!", flipRequest->asyncstate);
+			PsychErrorExitMsg(PsychError_internal, "flipRequest->asyncState has impossible value at end of flipop! This is a PTB DESIGN BUG!");
+		}
+		
+		// Reset it to zero, ie. ready for new adventures ;-)
+		if (flipstate) flipRequest->asyncstate=0;
+		
+		// Return return arguments from flip: We return a zero vbl_timestamp in case a poll for flip completion failed.
+		// That indicates that flip not yet finished and all other return values are invalid:
+		vbl_timestamp	= (flipstate) ? flipRequest->vbl_timestamp : 0.0;
+		time_at_onset	= flipRequest->time_at_onset;
+		time_at_flipend = flipRequest->time_at_flipend;
+		miss_estimate	= flipRequest->miss_estimate;
+		beamposatflip	= flipRequest->beamPosAtFlip;
+		
+		// Return timestamp at start of VBL time:
+		//PsychCopyOutDoubleArg(1, FALSE, vbl_timestamp);
+		//// Return timestamp at stimulus onset time:
+		//PsychCopyOutDoubleArg(2, FALSE, time_at_onset);
+		//// Return time when Flip ended:
+		//PsychCopyOutDoubleArg(3, FALSE, time_at_flipend);
+		//// Return current estimate of deadline miss, if any:
+		//PsychCopyOutDoubleArg(4, FALSE, miss_estimate);
+		//// Return beam position at VBL time:
+		//PsychCopyOutDoubleArg(5, FALSE, (double) beamposatflip);
+        
         // Execute hook chain for preparation of user space drawing ops:
         PsychPipelineExecuteHook(windowRecord, kPsychUserspaceBufferDrawingPrepare, NULL, NULL, FALSE, FALSE, NULL, NULL, NULL, NULL);
 

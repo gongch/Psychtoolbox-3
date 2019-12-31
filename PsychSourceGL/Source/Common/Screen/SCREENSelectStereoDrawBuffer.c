@@ -51,50 +51,50 @@ static char seeAlsoString[] = "OpenWindow Flip";
 
 PsychError SCREENSelectStereoDrawBuffer(void)
 {
-    PsychWindowRecordType *windowRecord;
-    int bufferid, param1;
-
-    //all subfunctions should have these two lines.
-    PsychPushHelp(useString, synopsisString, seeAlsoString);
-    if(PsychIsGiveHelp()){PsychGiveHelp();return(PsychError_none);};
-
-    PsychErrorExit(PsychCapNumInputArgs(3));     //The maximum number of inputs
-    PsychErrorExit(PsychRequireNumInputArgs(1)); //The required number of inputs
-    PsychErrorExit(PsychCapNumOutputArgs(1));    //The maximum number of outputs
-
-    //get the window record from the window record argument and get info from the window record
-    PsychAllocInWindowRecordArg(kPsychUseDefaultArgPosition, TRUE, &windowRecord);
-
-    if(!PsychIsOnscreenWindow(windowRecord)) PsychErrorExitMsg(PsychError_user, "Tried to select stereo draw buffer on something else than a onscreen window.");
-
-    // Return (optionally) current buffer id:
-    PsychCopyOutDoubleArg(1, FALSE, (double) windowRecord->stereodrawbuffer);
-
-    // Get the optional buffer id (0==left, 1==right). If none provided then we're done and can return immediately:
-    if (!PsychCopyInIntegerArg(2, FALSE, &bufferid)) return(PsychError_none);
-
-    // Bufferid provided...
-    if (bufferid < 0 || bufferid > 1) PsychErrorExitMsg(PsychError_user, "Invalid bufferid provided: Must be 0 for left-eye or 1 for right-eye buffer.");
-
-    // Trying to select other than left buffer on mono-window?
-    if (windowRecord->windowType != kPsychDoubleBufferOnscreen || windowRecord->stereomode == kPsychMonoscopic) {
-        // Yes. Reset to left buffer, which is used for mono mode:
-        bufferid = 0;
-    }
-
-    // Store assignment in windowRecord:
-    windowRecord->stereodrawbuffer = bufferid;
-
-    // Copy in optional param1 argument:
-    param1 = -10000;
-    PsychCopyInIntegerArg(3, FALSE, &param1);
-    if (param1 != -10000) {
-        if ((windowRecord->stereomode == kPsychOpenGLStereo) || (windowRecord->stereomode == kPsychFrameSequentialStereo)) {
-            if (param1 < -1 || param1 > 1) PsychErrorExitMsg(PsychError_user, "Invalid fieldid provided: Must be -1 for don't care, 0 for even field or 1 for odd field.");
-            // Valid: Assign it.
-            windowRecord->targetFlipFieldType = param1;
-        }
-    }
+	PsychWindowRecordType *windowRecord;
+	int bufferid, param1;
+	
+	//all subfunctions should have these two lines.  
+	PsychPushHelp(useString, synopsisString, seeAlsoString);
+	if(PsychIsGiveHelp()){PsychGiveHelp();return(PsychError_none);};
+	
+	PsychErrorExit(PsychCapNumInputArgs(3));     //The maximum number of inputs
+	PsychErrorExit(PsychRequireNumInputArgs(1)); //The required number of inputs	
+	PsychErrorExit(PsychCapNumOutputArgs(1));    //The maximum number of outputs
+        
+	//get the window record from the window record argument and get info from the window record
+	PsychAllocInWindowRecordArg(kPsychUseDefaultArgPosition, TRUE, &windowRecord);
+        
+	if(!PsychIsOnscreenWindow(windowRecord)) PsychErrorExitMsg(PsychError_user, "Tried to select stereo draw buffer on something else than a onscreen window.");
+            	
+	// Return (optionally) current buffer id:
+	//PsychCopyOutDoubleArg(1, FALSE, (double) windowRecord->stereodrawbuffer);
+	
+	// Get the optional buffer id (0==left, 1==right). If none provided then we're done and can return immediately:
+	//if (!PsychCopyInIntegerArg(2, FALSE, &bufferid)) return(PsychError_none);
+	
+	// Bufferid provided...
+	if (bufferid<0 || bufferid>1) PsychErrorExitMsg(PsychError_user, "Invalid bufferid provided: Must be 0 for left-eye or 1 for right-eye buffer.");
+	
+	// Trying to select other than left buffer on mono-window?
+	if(windowRecord->windowType!=kPsychDoubleBufferOnscreen || windowRecord->stereomode == kPsychMonoscopic) {
+		// Yes. Reset to left buffer, which is used for mono mode:
+		bufferid = 0;
+	}
+	
+	// Store assignment in windowRecord:
+	windowRecord->stereodrawbuffer = bufferid;
+	
+	// Copy in optional param1 argument:
+	param1 = -10000;
+	//PsychCopyInIntegerArg(3, FALSE, &param1);
+	if (param1!=-10000) {
+		if (windowRecord->stereomode == kPsychOpenGLStereo) {
+			if (param1<-1 || param1>1) PsychErrorExitMsg(PsychError_user, "Invalid fieldid provided: Must be -1 for don't care, 0 for even field or 1 for odd field.");
+			// Valid: Assign it.
+			windowRecord->targetFlipFieldType = param1;
+		}
+	}
 
     // If the imaging pipeline is active, then we're done.
     if (windowRecord->imagingMode & kPsychNeedFastBackingStore) {
@@ -178,7 +178,7 @@ void PsychSwitchFixedFunctionStereoDrawbuffer(PsychWindowRecordType *windowRecor
                 gluOrtho2D(0, screenwidth/2, windowRecord->rect[kPsychBottom], windowRecord->rect[kPsychTop]);
             }
             else {
-                glOrthofOES((GLfloat) 0, (GLfloat) screenwidth/2, (GLfloat) windowRecord->rect[kPsychBottom], (GLfloat) windowRecord->rect[kPsychTop], (GLfloat) -1, (GLfloat) 1);
+                //glOrthofOES((GLfloat) 0, (GLfloat) screenwidth/2, (GLfloat) windowRecord->rect[kPsychBottom], (GLfloat) windowRecord->rect[kPsychTop], (GLfloat) -1, (GLfloat) 1);
             }
 
             // Switch back to modelview matrix, but leave it unaltered:

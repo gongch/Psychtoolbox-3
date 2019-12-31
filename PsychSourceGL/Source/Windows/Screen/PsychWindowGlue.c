@@ -47,7 +47,8 @@
  *        Direct-X Graphics kernel subsystem. For that reason it is helpful to understand its internal working, as some of its properties and
  *        of the DirectX/Direct3D driver settings may also affect OpenGL rendering and stimulus presentation.
  */
-
+#include "GL/glew.h"
+#include "GL/wglew.h"
 #include "Screen.h"
 
 #ifndef WS_EX_LAYERED
@@ -2121,90 +2122,90 @@ psych_bool PsychOSGetPresentationTimingInfo(PsychWindowRecordType *windowRecord,
         // Current composition rate of the DWM: Ideally at least our video refresh rate.
         *compositionRate = (double) dwmtiming.rateCompose.uiNumerator / (double) dwmtiming.rateCompose.uiDenominator;
 
-        if (PsychPrefStateGet_Verbosity() > 15) {
-            printf("PTB-DEBUG: === PsychDwmGetCompositionTimingInfo returned data follows: ===\n\n");
-            printf("qpcFrameDisplayed       : %15.6f \n", PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcFrameDisplayed));
-            printf("qpcRefreshPeriod        : %15.6f \n", PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcRefreshPeriod));
-            printf("qpcFrameComplete        : %15.6f \n", PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcFrameComplete));
-            printf("cFrameComplete          : %i \n", (psych_uint64) dwmtiming.cFrameComplete);
-            printf("cFramePending           : %i \n", (psych_uint64) dwmtiming.cFramePending);
-            printf("cFramesDisplayed        : %i \n", (psych_uint64) dwmtiming.cFramesDisplayed);
-            printf("qpcFramePending         : %15.6f \n", PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcFramePending));
-            printf("cRefreshFrameDisplayed  : %i \n", (psych_uint64) dwmtiming.cRefreshFrameDisplayed);
-            printf("cRefreshStarted         : %i \n", (psych_uint64) dwmtiming.cRefreshStarted);
-            printf("cFramesLate             : %i \n", (psych_uint64) dwmtiming.cFramesLate);
-            printf("cFramesDropped          : %i \n", (psych_uint64) dwmtiming.cFramesDropped);
-            printf("cFramesMissed           : %i \n", (psych_uint64) dwmtiming.cFramesMissed);
-            printf("cBuffersEmpty           : %i \n", (psych_uint64) dwmtiming.cBuffersEmpty);
-
-            printf("PTB-DEBUG: === End of PsychDwmGetCompositionTimingInfo returned data.  ===\n\n");
-        }
-
-        // Return of complete info structure with all retrieved data requested by caller?
-        if (fullStateStructReturnArgPos > 0) {
-            // Yes. Create a structure with all info:
-            const char *DWMGraphicsFieldNames[]={ "rateRefresh", "qpcRefreshPeriod", "rateCompose", "qpcVBlank", "cRefresh", "cDXRefresh",
-                "qpcCompose", "cFrame", "cDXPresent", "cRefreshFrame", "cFrameSubmitted", "cDXPresentSubmitted",
-                "cFrameConfirmed", "cDXPresentConfirmed", "cRefreshConfirmed", "cDXRefreshConfirmed", "cFramesLate",
-                "cFramesOutstanding", "cFrameDisplayed", "qpcFrameDisplayed", "cRefreshFrameDisplayed", "cFrameComplete",
-                "qpcFrameComplete", "cFramePending", "qpcFramePending", "cFramesDisplayed", "cFramesComplete",
-                "cFramesPending", "cFramesAvailable", "cFramesDropped", "cFramesMissed", "cRefreshNextDisplayed",
-                "cRefreshNextPresented", "cRefreshesDisplayed", "cRefreshesPresented", "cRefreshStarted",
-                "cPixelsReceived", "cPixelsDrawn", "cBuffersEmpty" };
-            const int DWMGraphicsFieldCount = 39;
-            PsychGenericScriptType    *s;
-
-            // Alloc struct and return it as return argument at position 'fullStateStructReturnArgPos':
-            PsychAllocOutStructArray(fullStateStructReturnArgPos, FALSE, -1, DWMGraphicsFieldCount, DWMGraphicsFieldNames, &s);
-            PsychSetStructArrayDoubleElement("rateRefresh", 0, (double) dwmtiming.rateRefresh.uiNumerator / (double) dwmtiming.rateRefresh.uiDenominator, s);
-            PsychSetStructArrayDoubleElement("qpcRefreshPeriod", 0, PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcRefreshPeriod), s);
-            PsychSetStructArrayDoubleElement("rateCompose", 0, (double) dwmtiming.rateCompose.uiNumerator / (double) dwmtiming.rateCompose.uiDenominator, s);
-            PsychSetStructArrayDoubleElement("qpcVBlank", 0, PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcVBlank), s);
-            PsychSetStructArrayDoubleElement("cRefresh", 0, (double) (psych_int64) dwmtiming.cRefresh, s);
-            PsychSetStructArrayDoubleElement("cDXRefresh", 0, (double) (psych_int64) dwmtiming.cDXRefresh, s);
-            PsychSetStructArrayDoubleElement("qpcCompose", 0, PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcCompose), s);
-            PsychSetStructArrayDoubleElement("cFrame", 0, (double) (psych_int64) dwmtiming.cFrame, s);
-            PsychSetStructArrayDoubleElement("cDXPresent", 0, (double) (psych_int64) dwmtiming.cDXPresent, s);
-            PsychSetStructArrayDoubleElement("cRefreshFrame", 0, (double) (psych_int64) dwmtiming.cRefreshFrame, s);
-            PsychSetStructArrayDoubleElement("cFrameSubmitted", 0, (double) (psych_int64) dwmtiming.cFrameSubmitted, s);
-            PsychSetStructArrayDoubleElement("cDXPresentSubmitted", 0, (double) (psych_int64) dwmtiming.cDXPresentSubmitted, s);
-            PsychSetStructArrayDoubleElement("cFrameConfirmed", 0, (double) (psych_int64) dwmtiming.cFrameConfirmed, s);
-            PsychSetStructArrayDoubleElement("cDXPresentConfirmed", 0, (double) (psych_int64) dwmtiming.cDXPresentConfirmed, s);
-            PsychSetStructArrayDoubleElement("cRefreshConfirmed", 0, (double) (psych_int64) dwmtiming.cRefreshConfirmed, s);
-            PsychSetStructArrayDoubleElement("cDXRefreshConfirmed", 0, (double) (psych_int64) dwmtiming.cDXRefreshConfirmed, s);
-            PsychSetStructArrayDoubleElement("cFramesLate", 0, (double) (psych_int64) dwmtiming.cFramesLate, s);
-            PsychSetStructArrayDoubleElement("cFramesOutstanding", 0, (double) (psych_int64) dwmtiming.cFramesOutstanding, s);
-            PsychSetStructArrayDoubleElement("cFrameDisplayed", 0, (double) (psych_int64) dwmtiming.cFrameDisplayed, s);
-            PsychSetStructArrayDoubleElement("qpcFrameDisplayed", 0, PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcFrameDisplayed), s);
-            PsychSetStructArrayDoubleElement("cRefreshFrameDisplayed", 0, (double) (psych_int64) dwmtiming.cRefreshFrameDisplayed, s);
-            PsychSetStructArrayDoubleElement("cFrameComplete", 0, (double) (psych_int64) dwmtiming.cFrameComplete, s);
-            PsychSetStructArrayDoubleElement("qpcFrameComplete", 0, PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcFrameComplete), s);
-            PsychSetStructArrayDoubleElement("cFramePending", 0, (double) (psych_int64) dwmtiming.cFramePending, s);
-            PsychSetStructArrayDoubleElement("qpcFramePending", 0, PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcFramePending), s);
-            PsychSetStructArrayDoubleElement("cFramesDisplayed", 0, (double) (psych_int64) dwmtiming.cFramesDisplayed, s);
-            PsychSetStructArrayDoubleElement("cFramesComplete", 0, (double) (psych_int64) dwmtiming.cFramesComplete, s);
-            PsychSetStructArrayDoubleElement("cFramesPending", 0, (double) (psych_int64) dwmtiming.cFramesPending, s);
-            PsychSetStructArrayDoubleElement("cFramesAvailable", 0, (double) (psych_int64) dwmtiming.cFramesAvailable, s);
-            PsychSetStructArrayDoubleElement("cFramesDropped", 0, (double) (psych_int64) dwmtiming.cFramesDropped, s);
-            PsychSetStructArrayDoubleElement("cFramesMissed", 0, (double) (psych_int64) dwmtiming.cFramesMissed, s);
-            PsychSetStructArrayDoubleElement("cRefreshNextDisplayed", 0, (double) (psych_int64) dwmtiming.cRefreshNextDisplayed, s);
-            PsychSetStructArrayDoubleElement("cRefreshNextPresented", 0, (double) (psych_int64) dwmtiming.cRefreshNextPresented, s);
-            PsychSetStructArrayDoubleElement("cRefreshesDisplayed", 0, (double) (psych_int64) dwmtiming.cRefreshesDisplayed, s);
-            PsychSetStructArrayDoubleElement("cRefreshesPresented", 0, (double) (psych_int64) dwmtiming.cRefreshesPresented, s);
-            PsychSetStructArrayDoubleElement("cRefreshStarted", 0, (double) (psych_int64) dwmtiming.cRefreshStarted, s);
-            PsychSetStructArrayDoubleElement("cPixelsReceived", 0, (double) (psych_int64) dwmtiming.cPixelsReceived, s);
-            PsychSetStructArrayDoubleElement("cPixelsDrawn", 0, (double) (psych_int64) dwmtiming.cPixelsDrawn, s);
-            PsychSetStructArrayDoubleElement("cBuffersEmpty", 0, (double) (psych_int64) dwmtiming.cBuffersEmpty, s);
-        }
-
-        // Return success:
-        return(TRUE);
-    }
-    else {
-        if (PsychOSIsDWMEnabled(0) && PsychPrefStateGet_Verbosity() > 6) {
-            printf("PTB-DEBUG: Call to PsychDwmGetCompositionTimingInfo() failed with rc1 = %x, GetLastError() = %i\n", rc1, GetLastError());
-        }
-    }
+		if (PsychPrefStateGet_Verbosity() > 15) {
+			printf("PTB-DEBUG: === PsychDwmGetCompositionTimingInfo returned data follows: ===\n\n");
+			printf("qpcFrameDisplayed       : %15.6f \n", PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcFrameDisplayed));
+			printf("qpcRefreshPeriod        : %15.6f \n", PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcRefreshPeriod));
+			printf("qpcFrameComplete        : %15.6f \n", PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcFrameComplete));
+			printf("cFrameComplete          : %i \n", (psych_uint64) dwmtiming.cFrameComplete);
+			printf("cFramePending           : %i \n", (psych_uint64) dwmtiming.cFramePending);
+			printf("cFramesDisplayed        : %i \n", (psych_uint64) dwmtiming.cFramesDisplayed);
+			printf("qpcFramePending         : %15.6f \n", PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcFramePending));
+			printf("cRefreshFrameDisplayed  : %i \n", (psych_uint64) dwmtiming.cRefreshFrameDisplayed);
+			printf("cRefreshStarted         : %i \n", (psych_uint64) dwmtiming.cRefreshStarted);
+			printf("cFramesLate             : %i \n", (psych_uint64) dwmtiming.cFramesLate);
+			printf("cFramesDropped          : %i \n", (psych_uint64) dwmtiming.cFramesDropped);
+			printf("cFramesMissed           : %i \n", (psych_uint64) dwmtiming.cFramesMissed);
+			printf("cBuffersEmpty           : %i \n", (psych_uint64) dwmtiming.cBuffersEmpty);
+			
+			printf("PTB-DEBUG: === End of PsychDwmGetCompositionTimingInfo returned data.  ===\n\n");
+		}
+		
+		// Return of complete info structure with all retrieved data requested by caller?
+		if (fullStateStructReturnArgPos > 0) {
+			// Yes. Create a structure with all info:
+			const char *DWMGraphicsFieldNames[]={ "rateRefresh", "qpcRefreshPeriod", "rateCompose", "qpcVBlank", "cRefresh", "cDXRefresh",
+				"qpcCompose", "cFrame", "cDXPresent", "cRefreshFrame", "cFrameSubmitted", "cDXPresentSubmitted",
+				"cFrameConfirmed", "cDXPresentConfirmed", "cRefreshConfirmed", "cDXRefreshConfirmed", "cFramesLate",
+				"cFramesOutstanding", "cFrameDisplayed", "qpcFrameDisplayed", "cRefreshFrameDisplayed", "cFrameComplete", 
+				"qpcFrameComplete", "cFramePending", "qpcFramePending", "cFramesDisplayed", "cFramesComplete",
+				"cFramesPending", "cFramesAvailable", "cFramesDropped", "cFramesMissed", "cRefreshNextDisplayed",
+				"cRefreshNextPresented", "cRefreshesDisplayed", "cRefreshesPresented", "cRefreshStarted",
+				"cPixelsReceived", "cPixelsDrawn", "cBuffersEmpty" };
+			const int DWMGraphicsFieldCount = 39;
+			//PsychGenericScriptType	*s;
+			//
+			//// Alloc struct and return it as return argument at position 'fullStateStructReturnArgPos':
+			//PsychAllocOutStructArray(fullStateStructReturnArgPos, FALSE, 1, DWMGraphicsFieldCount, DWMGraphicsFieldNames, &s);
+			//PsychSetStructArrayDoubleElement("rateRefresh", 0, (double) dwmtiming.rateRefresh.uiNumerator / (double) dwmtiming.rateRefresh.uiDenominator, s);
+			//PsychSetStructArrayDoubleElement("qpcRefreshPeriod", 0, PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcRefreshPeriod), s);
+			//PsychSetStructArrayDoubleElement("rateCompose", 0, (double) dwmtiming.rateCompose.uiNumerator / (double) dwmtiming.rateCompose.uiDenominator, s);
+			//PsychSetStructArrayDoubleElement("qpcVBlank", 0, PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcVBlank), s);
+			//PsychSetStructArrayDoubleElement("cRefresh", 0, (double) (psych_int64) dwmtiming.cRefresh, s);
+			//PsychSetStructArrayDoubleElement("cDXRefresh", 0, (double) (psych_int64) dwmtiming.cDXRefresh, s);
+			//PsychSetStructArrayDoubleElement("qpcCompose", 0, PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcCompose), s);
+			//PsychSetStructArrayDoubleElement("cFrame", 0, (double) (psych_int64) dwmtiming.cFrame, s);
+			//PsychSetStructArrayDoubleElement("cDXPresent", 0, (double) (psych_int64) dwmtiming.cDXPresent, s);
+			//PsychSetStructArrayDoubleElement("cRefreshFrame", 0, (double) (psych_int64) dwmtiming.cRefreshFrame, s);
+			//PsychSetStructArrayDoubleElement("cFrameSubmitted", 0, (double) (psych_int64) dwmtiming.cFrameSubmitted, s);
+			//PsychSetStructArrayDoubleElement("cDXPresentSubmitted", 0, (double) (psych_int64) dwmtiming.cDXPresentSubmitted, s);
+			//PsychSetStructArrayDoubleElement("cFrameConfirmed", 0, (double) (psych_int64) dwmtiming.cFrameConfirmed, s);
+			//PsychSetStructArrayDoubleElement("cDXPresentConfirmed", 0, (double) (psych_int64) dwmtiming.cDXPresentConfirmed, s);
+			//PsychSetStructArrayDoubleElement("cRefreshConfirmed", 0, (double) (psych_int64) dwmtiming.cRefreshConfirmed, s);
+			//PsychSetStructArrayDoubleElement("cDXRefreshConfirmed", 0, (double) (psych_int64) dwmtiming.cDXRefreshConfirmed, s);
+			//PsychSetStructArrayDoubleElement("cFramesLate", 0, (double) (psych_int64) dwmtiming.cFramesLate, s);
+			//PsychSetStructArrayDoubleElement("cFramesOutstanding", 0, (double) (psych_int64) dwmtiming.cFramesOutstanding, s);
+			//PsychSetStructArrayDoubleElement("cFrameDisplayed", 0, (double) (psych_int64) dwmtiming.cFrameDisplayed, s);
+			//PsychSetStructArrayDoubleElement("qpcFrameDisplayed", 0, PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcFrameDisplayed), s);
+			//PsychSetStructArrayDoubleElement("cRefreshFrameDisplayed", 0, (double) (psych_int64) dwmtiming.cRefreshFrameDisplayed, s);
+			//PsychSetStructArrayDoubleElement("cFrameComplete", 0, (double) (psych_int64) dwmtiming.cFrameComplete, s);
+			//PsychSetStructArrayDoubleElement("qpcFrameComplete", 0, PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcFrameComplete), s);
+			//PsychSetStructArrayDoubleElement("cFramePending", 0, (double) (psych_int64) dwmtiming.cFramePending, s);
+			//PsychSetStructArrayDoubleElement("qpcFramePending", 0, PsychMapPrecisionTimerTicksToSeconds(dwmtiming.qpcFramePending), s);
+			//PsychSetStructArrayDoubleElement("cFramesDisplayed", 0, (double) (psych_int64) dwmtiming.cFramesDisplayed, s);
+			//PsychSetStructArrayDoubleElement("cFramesComplete", 0, (double) (psych_int64) dwmtiming.cFramesComplete, s);
+			//PsychSetStructArrayDoubleElement("cFramesPending", 0, (double) (psych_int64) dwmtiming.cFramesPending, s);
+			//PsychSetStructArrayDoubleElement("cFramesAvailable", 0, (double) (psych_int64) dwmtiming.cFramesAvailable, s);
+			//PsychSetStructArrayDoubleElement("cFramesDropped", 0, (double) (psych_int64) dwmtiming.cFramesDropped, s);
+			//PsychSetStructArrayDoubleElement("cFramesMissed", 0, (double) (psych_int64) dwmtiming.cFramesMissed, s);
+			//PsychSetStructArrayDoubleElement("cRefreshNextDisplayed", 0, (double) (psych_int64) dwmtiming.cRefreshNextDisplayed, s);
+			//PsychSetStructArrayDoubleElement("cRefreshNextPresented", 0, (double) (psych_int64) dwmtiming.cRefreshNextPresented, s);
+			//PsychSetStructArrayDoubleElement("cRefreshesDisplayed", 0, (double) (psych_int64) dwmtiming.cRefreshesDisplayed, s);
+			//PsychSetStructArrayDoubleElement("cRefreshesPresented", 0, (double) (psych_int64) dwmtiming.cRefreshesPresented, s);
+			//PsychSetStructArrayDoubleElement("cRefreshStarted", 0, (double) (psych_int64) dwmtiming.cRefreshStarted, s);
+			//PsychSetStructArrayDoubleElement("cPixelsReceived", 0, (double) (psych_int64) dwmtiming.cPixelsReceived, s);
+			//PsychSetStructArrayDoubleElement("cPixelsDrawn", 0, (double) (psych_int64) dwmtiming.cPixelsDrawn, s);
+			//PsychSetStructArrayDoubleElement("cBuffersEmpty", 0, (double) (psych_int64) dwmtiming.cBuffersEmpty, s);
+		}
+		
+		// Return success:
+		return(TRUE);
+	}
+	else {
+		if (PsychOSIsDWMEnabled(0) && PsychPrefStateGet_Verbosity() > 6) {
+			printf("PTB-DEBUG: Call to PsychDwmGetCompositionTimingInfo() failed with rc1 = %x, GetLastError() = %i\n", rc1, GetLastError());			
+		}
+	}
 
     // DWM Unsupported, DWM disabled or query failed:
     return(FALSE);

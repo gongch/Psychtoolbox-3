@@ -56,8 +56,13 @@
 #include <waffle-1/waffle.h>
 #endif
 
-// Include specifications of the GPU registers:
-#include "PsychGraphicsCardRegisterSpecs.h"
+#if PSYCH_SYSTEM == PSYCH_WINDOWS
+//#ifndef QUICKTIME_IS_INCLUDED
+//#define QUICKTIME_IS_INCLUDED
+//	#include <Movies.h>
+//    #include <GXMath.h>
+//#endif
+#endif
 
 #include "PsychScreenGlue.h"
 #include "PsychWindowTextGlue.h"

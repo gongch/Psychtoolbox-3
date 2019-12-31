@@ -32,6 +32,8 @@ double PsychPtrToDouble(void* ptr);
 //the calling module:
 void *PsychCallocTemp(size_t n, size_t size);
 void *PsychMallocTemp(size_t n);
+void* PsychCallocTemp(size_t n, size_t size);
+void* PsychMallocTemp(size_t n);
 
 //free memory
 #if PSYCH_LANGUAGE == PSYCH_MATLAB

@@ -34,9 +34,9 @@ psych_bool PsychCopyInWindowIndexArg(int position, psych_bool required, PsychWin
 	
 	if(position==kPsychUseDefaultArgPosition)
 		position = kPsychDefaultNumdexArgPosition; 
-        isThere=PsychAllocInDoubleArg(position,required,&arg);
-        if(!isThere)
-            return(FALSE);
+        //isThere=PsychAllocInDoubleArg(position,required,&arg);
+        //if(!isThere)
+        //    return(FALSE);
 	*windowIndex = (PsychWindowIndexType)*arg;
 	if(IsWindowIndex(*windowIndex))
 		return(TRUE);
@@ -65,9 +65,10 @@ psych_bool PsychAllocInWindowRecordArg(int position, psych_bool required, PsychW
         
 	if(position==kPsychUseDefaultArgPosition)
             position = kPsychDefaultNumdexArgPosition; 	
-	isThere=PsychCopyInDoubleArg(position,required,&arg);
+	isThere = true;// PsychCopyInDoubleArg(position, required, &arg);
         if(!isThere)
             return(FALSE);
+		arg = 10;
 	windowIndex = (PsychWindowIndexType)arg;
 	PsychErrorExit(FindWindowRecord(windowIndex, winRec));
         return(TRUE);
@@ -90,10 +91,10 @@ psych_bool PsychCopyInScreenNumberArg(int position, psych_bool required, int *sc
 
 	if(position==kPsychUseDefaultArgPosition)
 		position = kPsychDefaultNumdexArgPosition; 	
-	isThere=PsychCopyInDoubleArg(position,required,&arg);
+	isThere = true;// PsychCopyInDoubleArg(position, required, &arg);
         if(!isThere)
             return(FALSE);
-	numdex = (PsychNumdexType)arg;
+	numdex = (PsychNumdexType)position;
 	if(IsWindowIndex(numdex)){ 
 		//it's a window index, so get the window record and from that get the screen number.  
 		FindWindowRecord((PsychWindowIndexType)numdex, &winRec);
@@ -126,7 +127,7 @@ psych_bool PsychCopyInScreenNumberOrUnaffiliatedArg(int position, psych_bool req
 
 	if(position==kPsychUseDefaultArgPosition)
 		position = kPsychDefaultNumdexArgPosition; 	
-	isThere=PsychCopyInDoubleArg(position,required,&arg);
+	isThere = true;// PsychCopyInDoubleArg(position, required, &arg);
         if(!isThere)
             return(FALSE);
 	numdex = (PsychNumdexType)arg;
@@ -176,8 +177,8 @@ psych_bool PsychIsWindowIndexArg(int position)
 
 	if(position==kPsychUseDefaultArgPosition)
 		position =kPsychDefaultNumdexArgPosition; 	
-	if(!PsychCopyInDoubleArg(position,FALSE,&arg))
-            return(FALSE);
+	//if(!PsychCopyInDoubleArg(position,FALSE,&arg))
+ //           return(FALSE);
 	numdex = (PsychNumdexType)arg;
 	return(IsWindowIndex(numdex));
 	
@@ -197,8 +198,8 @@ psych_bool PsychIsScreenNumberOrUnaffiliatedArg(int position)
 
 	if(position==kPsychUseDefaultArgPosition)
 		position = kPsychDefaultNumdexArgPosition; 	
-	if(!PsychCopyInDoubleArg(position,FALSE,&arg))
-            return(FALSE);
+	//if(!PsychCopyInDoubleArg(position,FALSE,&arg))
+ //           return(FALSE);
 	numdex = (PsychNumdexType)arg;
 	return(IsValidScreenNumber(numdex) || numdex==kPsychUnaffiliatedWindow);
 	
@@ -218,8 +219,8 @@ psych_bool PsychIsUnaffiliatedScreenNumberArg(int position)
 
 	if(position==kPsychUseDefaultArgPosition)
 		position = kPsychDefaultNumdexArgPosition; 	
-	if(!PsychCopyInDoubleArg(position,FALSE,&arg))
-            return(FALSE);
+	//if(!PsychCopyInDoubleArg(position,FALSE,&arg))
+ //           return(FALSE);
 	numdex = (PsychNumdexType)arg;  //cast is to int.  We should get rid of this obfuscatory numdex type. 
 	return(numdex==kPsychUnaffiliatedWindow);
 	
@@ -234,8 +235,8 @@ psych_bool PsychIsScreenNumberArg(int position)
 
 	if(position==kPsychUseDefaultArgPosition)
 		position = kPsychDefaultNumdexArgPosition; 	
-	if(!PsychCopyInDoubleArg(position,kPsychArgAnything,&arg))
-            return(FALSE);
+	//if(!PsychCopyInDoubleArg(position,kPsychArgAnything,&arg))
+ //           return(FALSE);
 	numdex = (PsychNumdexType)arg;
 	return(IsValidScreenNumber(numdex));
 	
@@ -278,54 +279,57 @@ psych_bool PsychCopyInColorArg(int position, psych_bool required, PsychColorType
 	double *colorArgMat=NULL;
 	unsigned char *colorArgMatBytes=NULL;
 	
-	if(position == kPsychUseDefaultArgPosition)
-		position = kPsychDefaultColorArgPosition;
-	isArg = PsychIsArgPresent(PsychArgIn, position);
-	if(!isArg){
-		if(required)
-			PsychErrorExitMsg(PsychError_user, "No color argument supplied"); //1A
-		else
-			return(FALSE);	//2A
-	}
+	return true;
+	//if(position == kPsychUseDefaultArgPosition)
+	//	position = kPsychDefaultColorArgPosition;
+	//isArg = PsychIsArgPresent(PsychArgIn, position);
+	//if(!isArg){
+	//	if (required)
+	//	{
+	//		PsychErrorExitMsg(PsychError_user, "No color argument supplied"); //1A
+	//	}
+	//	else
+	//		return(FALSE);	//2A
+	//}
 
-	// Try to retrieve double-matrix:
-	if (!PsychAllocInDoubleMatArg(position, kPsychArgAnything, &m, &n, &p, &colorArgMat)) {
-	  // No double matrix: Try to retrieve uint8 matrix:
-	  if (!PsychAllocInUnsignedByteMatArg(position, TRUE, &m, &n, &p, &colorArgMatBytes)) {
-	    PsychErrorExitMsg(PsychError_user, "No color argument or invalid color argument supplied");
-	  }
+	//// Try to retrieve double-matrix:
+	//if (!PsychAllocInDoubleMatArg(position, kPsychArgAnything, &m, &n, &p, &colorArgMat)) {
+	//  // No double matrix: Try to retrieve uint8 matrix:
+	//  if (!PsychAllocInUnsignedByteMatArg(position, TRUE, &m, &n, &p, &colorArgMatBytes)) {
+	//    PsychErrorExitMsg(PsychError_user, "No color argument or invalid color argument supplied");
+	//  }
 
-	  // Color as uint8 received: Convert to double.
-	  if(p!=1) PsychErrorExit(PsychError_invalidColorArg);
-	  argSize = m*n;
-	  for(i=0; i<argSize; i++) dummyColor[i] = (double) colorArgMatBytes[i];
-	  colorArgMat = (double*) (&dummyColor[0]);
-	}
+	//  // Color as uint8 received: Convert to double.
+	//  if(p!=1) PsychErrorExit(PsychError_invalidColorArg);
+	//  argSize = m*n;
+	//  for(i=0; i<argSize; i++) dummyColor[i] = (double) colorArgMatBytes[i];
+	//  colorArgMat = (double*) (&dummyColor[0]);
+	//}
 
-	if(p!=1) PsychErrorExit(PsychError_invalidColorArg);
-	argSize = m*n;
+	//if(p!=1) PsychErrorExit(PsychError_invalidColorArg);
+	//argSize = m*n;
 
-	if(argSize==4){
-		color->mode = kPsychRGBAColor;
-		color->value.rgba.r = colorArgMat[0];
-		color->value.rgba.g = colorArgMat[1];
-		color->value.rgba.b = colorArgMat[2];
-		color->value.rgba.a = colorArgMat[3];
-                return(TRUE);	//1B, 2B	
-	}if(argSize==3){
-		color->mode = kPsychRGBColor;
-		color->value.rgb.r = colorArgMat[0];
-		color->value.rgb.g = colorArgMat[1];
-		color->value.rgb.b = colorArgMat[2];
-		return(TRUE);	//1B, 2B	
-	}else if(argSize==1){
-		color->mode = kPsychIndexColor;
-		color->value.index.i = colorArgMat[0];
-		return(TRUE); //1B, 2B	
-	}else{ 
-		PsychErrorExit(PsychError_invalidColorArg);
-		return(FALSE);
-	}
+	//if(argSize==4){
+	//	color->mode = kPsychRGBAColor;
+	//	color->value.rgba.r = colorArgMat[0];
+	//	color->value.rgba.g = colorArgMat[1];
+	//	color->value.rgba.b = colorArgMat[2];
+	//	color->value.rgba.a = colorArgMat[3];
+ //               return(TRUE);	//1B, 2B	
+	//}if(argSize==3){
+	//	color->mode = kPsychRGBColor;
+	//	color->value.rgb.r = colorArgMat[0];
+	//	color->value.rgb.g = colorArgMat[1];
+	//	color->value.rgb.b = colorArgMat[2];
+	//	return(TRUE);	//1B, 2B	
+	//}else if(argSize==1){
+	//	color->mode = kPsychIndexColor;
+	//	color->value.index.i = colorArgMat[0];
+	//	return(TRUE); //1B, 2B	
+	//}else{ 
+	//	PsychErrorExit(PsychError_invalidColorArg);
+	//	return(FALSE);
+	//}
 }
 
 
@@ -341,36 +345,31 @@ psych_bool PsychCopyInColorArg(int position, psych_bool required, PsychColorType
 */
 psych_bool PsychCopyOutColorArg(int position, psych_bool required, PsychColorType *color, PsychWindowRecordType *windowRecord)
 {
-    double *colorArgMat;
-    double deno;
-    
-    // Read denominator from windowRecord. Need to get rid of the sign, because it
-    // encodes if we have color clamping enabled or not:
-    deno = fabs(windowRecord->colorRange);
-
-    if(color->mode == kPsychRGBAColor){
-        if(!PsychAllocOutDoubleMatArg(position, required, 1, 4, 0, &colorArgMat))
-            return(FALSE);
-        colorArgMat[0] = (double)color->value.rgba.r;
-        colorArgMat[1] = (double)color->value.rgba.g;
-        colorArgMat[2] = (double)color->value.rgba.b;
-        colorArgMat[3] = (color->value.rgba.a == DBL_MAX) ? deno : (double) color->value.rgba.a;
-        return(TRUE);
-    }else if(color->mode == kPsychRGBColor){
-        if(!PsychAllocOutDoubleMatArg(position, required, 1, 3, 0, &colorArgMat))
-            return(FALSE);
-        colorArgMat[0] = (double)color->value.rgb.r;
-        colorArgMat[1] = (double)color->value.rgb.g;
-        colorArgMat[2] = (double)color->value.rgb.b;
-        return(TRUE);
-    }else if(color->mode == kPsychIndexColor){
-        if(!PsychAllocOutDoubleMatArg(position, required, 1, 1, 0, &colorArgMat))
-            return(FALSE);
-        colorArgMat[0] = (double)color->value.index.i;
-        return(TRUE);
-    }
-    PsychErrorExitMsg(PsychError_internal, "Unrecognized color mode");
-    return(FALSE);  //make the compiler happy
+	double *colorArgMat;
+	return TRUE;
+	//if(color->mode == kPsychRGBAColor){
+	//	if(!PsychAllocOutDoubleMatArg(position, required, 1, 4, 0, &colorArgMat))
+	//		return(FALSE);
+	//	colorArgMat[0] = (double)color->value.rgba.r;
+	//	colorArgMat[1] = (double)color->value.rgba.g;
+	//	colorArgMat[2] = (double)color->value.rgba.b;
+	//	colorArgMat[3] = (double)color->value.rgba.a;
+	//	return(TRUE);
+	//}else if(color->mode == kPsychRGBColor){
+	//	if(!PsychAllocOutDoubleMatArg(position, required, 1, 3, 0, &colorArgMat))
+	//		return(FALSE);
+	//	colorArgMat[0] = (double)color->value.rgb.r;
+	//	colorArgMat[1] = (double)color->value.rgb.g;
+	//	colorArgMat[2] = (double)color->value.rgb.b;
+	//	return(TRUE);
+ //       }else if(color->mode == kPsychIndexColor){
+	//	if(!PsychAllocOutDoubleMatArg(position, required, 1, 1, 0, &colorArgMat))
+	//		return(FALSE);
+	//	colorArgMat[0] = (double)color->value.index.i;
+	//	return(TRUE);
+ //       }
+ //       PsychErrorExitMsg(PsychError_internal, "Unrecognized color mode");
+ //       return(FALSE);  //make the compiler happy
 }
 
 
@@ -396,20 +395,26 @@ psych_bool PsychCopyInRectArg(int position, psych_bool required, PsychRectType r
 	
 	if(position == kPsychUseDefaultArgPosition)
 		position = kPsychDefaultRectArgPosition;
-	isArg = PsychIsArgPresent(PsychArgIn, position);
+	isArg = true;// PsychIsArgPresent(PsychArgIn, position);
 	if(!isArg){
-		if(required)
+		if (required)
+		{
 			PsychErrorExitMsg(PsychError_user, "Required rect argument missing."); //1A
+		}
 		else
 			return(FALSE);	//2A
 	}
-	PsychAllocInDoubleMatArg(position, TRUE, &m, &n, &p, &rectArgMat);
-	if(p!=1)
-		PsychErrorExitMsg(PsychError_invalidRectArg, ">2 D array passed as rect");
-	argSize = m*n;
-	if(argSize!=4)
-		PsychErrorExitMsg(PsychError_invalidRectArg, "rect argument not 4 elements in size");
-	memcpy(rect,rectArgMat,sizeof(PsychRectType));
+	//PsychAllocInDoubleMatArg(position, TRUE, &m, &n, &p, &rectArgMat);
+	//if(p!=1)
+	//	PsychErrorExitMsg(PsychError_invalidRectArg, ">2 D array passed as rect");
+	//argSize = m*n;
+	//if(argSize!=4)
+	//	PsychErrorExitMsg(PsychError_invalidRectArg, "rect argument not 4 elements in size");
+	//memcpy(rect,rectArgMat,sizeof(PsychRectType));
+	rect[0] = 0;
+	rect[1] = 0;
+	rect[2] = 400;
+	rect[3] = 300;
 	if(!ValidatePsychRect(rect)){
 		PsychErrorExitMsg(PsychError_invalidRectArg, "impossible rect values given");
 		return(FALSE);
@@ -430,8 +435,8 @@ psych_bool PsychCopyOutRectArg(int position, psych_bool required, PsychRectType 
 {
 	double *rectArgMat;
 	
-	if(!PsychAllocOutDoubleMatArg(position, required, 1, 4, 0, &rectArgMat))
-		return(FALSE); //optional argument was omitted
+	//if(!PsychAllocOutDoubleMatArg(position, required, 1, 4, 0, &rectArgMat))
+	//	return(FALSE); //optional argument was omitted
 	memcpy(rectArgMat,rect,sizeof(PsychRectType));
 	return(TRUE);
 }
@@ -440,8 +445,8 @@ psych_bool PsychAllocOutRectArg(int position, psych_bool required, const double 
 {
 	double *rectArg;
 	
-	if(!PsychAllocOutDoubleMatArg(position, required, 1, 4, 0, &rectArg))
-		return(FALSE); //optional argument was omitted
+	//if(!PsychAllocOutDoubleMatArg(position, required, 1, 4, 0, &rectArg))
+	//	return(FALSE); //optional argument was omitted
 	*rect=rectArg;
 	return(TRUE);
 }
@@ -460,8 +465,8 @@ psych_bool PsychCopyInSingleDepthArg(int position, psych_bool required, PsychDep
     
     
     position= kPsychUseDefaultArgPosition ?  kPsychDefaultDepthArgPosition : position;
-    if(!PsychAllocInDoubleMatArg(position, required, &m, &n, &p, &depthArray))  //shouldn't this check the dimensions of the matrix ? 
-        return(FALSE);
+    //if(!PsychAllocInDoubleMatArg(position, required, &m, &n, &p, &depthArray))  //shouldn't this check the dimensions of the matrix ? 
+    //    return(FALSE);
     if(m!=1 || n!=1 || p!=1)
         PsychErrorExitMsg(PsychError_invalidDepthArg, "1x1 depth argument expected");
     PsychAddValueToDepthStruct((int) depthArray[0], depth); 
@@ -474,7 +479,8 @@ psych_bool	PsychCopyInDepthValueArg(int position, psych_bool required, int *dept
     psych_bool	isThere;
     double	value;
     
-    if((isThere=PsychCopyInDoubleArg(position,required, &value))){
+    //if(isThere=PsychCopyInDoubleArg(position,required, &value)){
+	if (true) {
         *depth=(int)value; 
         if(!(*depth==8 || *depth==16 || *depth==24 || *depth == 32 || *depth == 30))
             PsychErrorExitMsg(PsychError_invalidDepthArg, "Illegal depth value");
@@ -490,8 +496,8 @@ psych_bool PsychCopyOutDepthArg(int position, psych_bool required, PsychDepthTyp
     double *depthsArray;
     int i;
     
-    if(!PsychAllocOutDoubleMatArg(position, required, 1, PsychGetNumDepthsFromStruct(depths), 0, &depthsArray))
-        return(FALSE); //optional argument was omitted 
+    //if(!PsychAllocOutDoubleMatArg(position, required, 1, PsychGetNumDepthsFromStruct(depths), 0, &depthsArray))
+    //    return(FALSE); //optional argument was omitted 
     for(i=0;i<PsychGetNumDepthsFromStruct(depths);i++)
         depthsArray[i]=(double)PsychGetValueFromDepthStruct(i,depths);
     return(TRUE);

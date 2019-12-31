@@ -280,97 +280,97 @@ void PsychErrorExitC(PsychError error,
                      const char *funcName,
                      const char *fileName)
 {
-    char *functionName;
-    PsychArgDescriptorType *specified, *received;
-    int i, numTypes;
-    const char *typeStrings[PsychArgType_NUMTYPES];
+    //char *functionName;
+    //PsychArgDescriptorType *specified, *received;
+    //int i, numTypes;
+    //const char *typeStrings[PsychArgType_NUMTYPES];
 
-    // This function must be implemented by the scripting glue and allows to
-    // process the error in some frontend specific way, e.g., set exception
-    // state, or simply ignore it:
-    PsychProcessErrorInScripting(error, extraErrorString ? extraErrorString : errorStringsERROR[error]);
+    //// This function must be implemented by the scripting glue and allows to
+    //// process the error in some frontend specific way, e.g., set exception
+    //// state, or simply ignore it:
+    //PsychProcessErrorInScripting(error, extraErrorString ? extraErrorString : errorStringsERROR[error]);
 
-    //if the error is type none then just return
-    if(error==PsychError_none)
-        return;
+    ////if the error is type none then just return
+    //if(error==PsychError_none)
+    //    return;
 
-    //if the error is an internal error then display copious info
-    if(!usageErrorFlagsERROR[error]){
-        printf("INTERNAL PSYCHTOOLBOX ERROR\n");
-        printf("\terror:                %s\n",errorNameStringsERROR[error]);
-        printf("\tgeneral description:  %s\n",errorStringsERROR[error]);
-        if(extraErrorString != NULL)
-            printf("\tspecific description: %s\n",extraErrorString);
-        printf("\tmodule name:          %s\n",PsychGetModuleName());
-        printf("\tsubfunction call:     %s\n",PsychGetFunctionName());
-        printf("\tfile name:            %s\n",fileName);
-        printf("\tfunction name:        %s\n",funcName);
-        printf("\tline number:          %d\n",lineNum);
-        PsychErrMsgTxt(NULL);  //exit the module
-    }else{
-        //if the error is usage error then
-        functionName = PsychGetFunctionName();
-        printf("Error in function %s: ",functionName);
-        printf("\t%s\n",errorStringsERROR[error]);
-        if(extraErrorString !=NULL)
-            printf("%s\n",extraErrorString);
-        //attempts to fetch or return arguments cache descriptions of the the desired
-        //and returned values in static variables.  If attempts to set or retrieve an
-        //argument resulted in an error value PsychError_invalidArg_*, then we can retrieve that info
-        //about the specified and desired argument to generate a detailed error message.
-        if(error == PsychError_invalidArg_absent || error == PsychError_invalidArg_extra || error == PsychError_invalidArg_type || error == PsychError_invalidArg_size){
-            PsychGetArgDescriptor(&specified, &received);
-            if(specified != NULL && received != NULL){  //why would these be null ?
-                //for specified
-                printf("\tDiscrepancy between a specified and supplied argument:\n");
-                printf("\t\tSpecified Argument Description:\n");
-                printf("\t\t\tdirection: %s\n", (specified->direction==PsychArgIn) ? "Input" : "Output");  //input  or output
-                printf("\t\t\tposition: %d\n", specified->position);  //position
-                printf("\t\t\tpresence:");
-                switch(specified->isThere){
-                    case kPsychArgAbsent: printf("forbidden");break;
-                    case kPsychArgPresent: printf("required");break;
-                    case kPsychArgFixed: printf("fixed");break;
-                }
-                printf("\n");
+    ////if the error is an internal error then display copious info
+    //if(!usageErrorFlagsERROR[error]){
+    //    printf("INTERNAL PSYCHTOOLBOX ERROR\n");
+    //    printf("\terror:                %s\n",errorNameStringsERROR[error]);
+    //    printf("\tgeneral description:  %s\n",errorStringsERROR[error]);
+    //    if(extraErrorString != NULL)
+    //        printf("\tspecific description: %s\n",extraErrorString);
+    //    printf("\tmodule name:          %s\n",PsychGetModuleName());
+    //    printf("\tsubfunction call:     %s\n",PsychGetFunctionName());
+    //    printf("\tfile name:            %s\n",fileName);
+    //    printf("\tfunction name:        %s\n",funcName);
+    //    printf("\tline number:          %d\n",lineNum);
+    //    PsychErrMsgTxt(NULL);  //exit the module
+    //}else{
+    //    //if the error is usage error then
+    //    functionName = PsychGetFunctionName();
+    //    printf("Error in function %s: ",functionName);
+    //    printf("\t%s\n",errorStringsERROR[error]);
+    //    if(extraErrorString !=NULL)
+    //        printf("%s\n",extraErrorString);
+    //    //attempts to fetch or return arguments cache descriptions of the the desired
+    //    //and returned values in static variables.  If attempts to set or retrieve an
+    //    //argument resulted in an error value PsychError_invalidArg_*, then we can retrieve that info
+    //    //about the specified and desired argument to generate a detailed error message.
+    //    if(error == PsychError_invalidArg_absent || error == PsychError_invalidArg_extra || error == PsychError_invalidArg_type || error == PsychError_invalidArg_size){
+    //        PsychGetArgDescriptor(&specified, &received);
+    //        if(specified != NULL && received != NULL){  //why would these be null ?
+    //            //for specified
+    //            printf("\tDiscrepancy between a specified and supplied argument:\n");
+    //            printf("\t\tSpecified Argument Description:\n");
+    //            printf("\t\t\tdirection: %s\n", (specified->direction==PsychArgIn) ? "Input" : "Output");  //input  or output
+    //            printf("\t\t\tposition: %d\n", specified->position);  //position
+    //            printf("\t\t\tpresence:");
+    //            switch(specified->isThere){
+    //                case kPsychArgAbsent: printf("forbidden");break;
+    //                case kPsychArgPresent: printf("required");break;
+    //                case kPsychArgFixed: printf("fixed");break;
+    //            }
+    //            printf("\n");
 
-                printf("\t\t\tformats allowed:\n");
-                numTypes=PsychDecomposeArgFormat(specified->type, typeStrings);
-                for(i=0;i<numTypes;i++)
-                    printf("\t\t\t\t%s\n",typeStrings[i]);
+    //            printf("\t\t\tformats allowed:\n");
+    //            numTypes=PsychDecomposeArgFormat(specified->type, typeStrings);
+    //            for(i=0;i<numTypes;i++)
+    //                printf("\t\t\t\t%s\n",typeStrings[i]);
 
-                printf("\t\t\tminimum M: %s\n", int2str(specified->mDimMin));
-                printf("\t\t\tmaximum M: %s\n", (specified->mDimMax==kPsychUnboundedArraySize) ? "unbounded" : int2str(specified->mDimMax));
-                printf("\t\t\tminimum N: %s\n", int2str(specified->nDimMin));
-                printf("\t\t\tmaximum N: %s\n", (specified->nDimMax==kPsychUnboundedArraySize) ? "unbounded" : int2str(specified->nDimMax));
-                printf("\t\t\tminimum P: %s\n", int2str(specified->pDimMin));
-                printf("\t\t\tmaximum P: %s\n", (specified->pDimMax==kPsychUnboundedArraySize) ? "unbounded" : int2str(specified->pDimMax));
+    //            printf("\t\t\tminimum M: %s\n", int2str(specified->mDimMin));
+    //            printf("\t\t\tmaximum M: %s\n", (specified->mDimMax==kPsychUnboundedArraySize) ? "unbounded" : int2str(specified->mDimMax));
+    //            printf("\t\t\tminimum N: %s\n", int2str(specified->nDimMin));
+    //            printf("\t\t\tmaximum N: %s\n", (specified->nDimMax==kPsychUnboundedArraySize) ? "unbounded" : int2str(specified->nDimMax));
+    //            printf("\t\t\tminimum P: %s\n", int2str(specified->pDimMin));
+    //            printf("\t\t\tmaximum P: %s\n", (specified->pDimMax==kPsychUnboundedArraySize) ? "unbounded" : int2str(specified->pDimMax));
 
-                //For received
-                printf("\t\tProvided Argument Description:\n");
-                printf("\t\t\tdirection: %s\n", (received->direction== PsychArgIn) ? "Input" : "Output");  //input  or output
-                printf("\t\t\tposition: %d\n", received->position);  //position
-                printf("\t\t\tpresence: ");
-                switch(received->isThere){
-                    case kPsychArgAbsent: printf("absent\n");break;
-                    case kPsychArgPresent: printf("present\n");break;
-                    case kPsychArgFixed: printf("fixed\n");break;
-                }
-                if(received->isThere!=kPsychArgAbsent && received->direction==PsychArgIn){
-                    printf("\t\t\tformat:");
+    //            //For received
+    //            printf("\t\tProvided Argument Description:\n");
+    //            printf("\t\t\tdirection: %s\n", (received->direction== PsychArgIn) ? "Input" : "Output");  //input  or output
+    //            printf("\t\t\tposition: %d\n", received->position);  //position
+    //            printf("\t\t\tpresence: ");
+    //            switch(received->isThere){
+    //                case kPsychArgAbsent: printf("absent\n");break;
+    //                case kPsychArgPresent: printf("present\n");break;
+    //                case kPsychArgFixed: printf("fixed\n");break;
+    //            }
+    //            if(received->isThere!=kPsychArgAbsent && received->direction==PsychArgIn){
+    //                printf("\t\t\tformat:");
 
-                    numTypes=PsychDecomposeArgFormat(received->type, typeStrings); //there should only be one, but check for bugs
-                    for(i=0;i<numTypes;i++)
-                        printf("%s\n",typeStrings[i]);
-                    printf("\t\t\t number of dimensions: %d\n", received->numDims);
-                    printf("\t\t\t\t M: %s\n", int2str(received->mDimMin));
-                    printf("\t\t\t\t N: %s\n", int2str(received->nDimMin));
-                    printf("\t\t\t\t P: %s\n", int2str(received->pDimMin));
-                }
-            }
-        }
-        PsychGiveUsageExit();
-    }
+    //                numTypes=PsychDecomposeArgFormat(received->type, typeStrings); //there should only be one, but check for bugs
+    //                for(i=0;i<numTypes;i++)
+    //                    printf("%s\n",typeStrings[i]);
+    //                printf("\t\t\t number of dimensions: %d\n", received->numDims);
+    //                printf("\t\t\t\t M: %s\n", int2str(received->mDimMin));
+    //                printf("\t\t\t\t N: %s\n", int2str(received->nDimMin));
+    //                printf("\t\t\t\t P: %s\n", int2str(received->pDimMin));
+    //            }
+    //        }
+    //    }
+    //    PsychGiveUsageExit();
+    //}
 }
 
 

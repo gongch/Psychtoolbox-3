@@ -35,7 +35,12 @@
 #include "PsychPlatformConstants.h"
 
 //these control build switches
-#define PSYCH_SYSTEM        PSYCH_WINDOWS
+#define PSYCH_SYSTEM							PSYCH_WINDOWS
+#define PSYCH_LANGUAGE							PSYCH_C
+#define PSYCH_WINDOWING							PSYCH_CGL_WINDOW
+#define PSYCH_DEBUG							PSYCH_ON
+
+
 
 #ifndef PSYCH_LANGUAGE
 #define PSYCH_LANGUAGE      PSYCH_MATLAB

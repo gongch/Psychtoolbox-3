@@ -85,16 +85,16 @@ static void* PsychEnqueueTempMemory(size_t* p, size_t n)
     // Set our buffer as new head of list:
     PsychTempMemHead = p;
 
-    // Add allocated buffer size as 2nd element:
-    p++;
-    *p = n;
+  // Add allocated buffer size as 2nd element:
+  p = (size_t*)p + sizeof(PsychTempMemHead);
+  *((size_t*) p) = n;
 
     // Accounting:
     totalTempMemAllocated += n;
     // printf("TEMPMALLOCED %i Bytes,  new = %i.\n", n, totalTempMemAllocated); fflush(NULL);
 
-    // Increment p again to get real start of user-visible buffer:
-    p++;
+  // Increment p again to get real start of user-visible buffer:
+  p = (size_t*)p + sizeof(n);
 
     // Return ptr:
     return((void*) p);
@@ -154,15 +154,12 @@ void PsychFreeTemp(void* inptr)
     size_t *next = PsychTempMemHead;
     size_t *prevptr = NULL;
 
-    if (ptr == NULL)
-        return;
-
-    // Convert ptb supplied pointer (in)ptr into real start
-    // of our buffer, including our header:
-    ptr-= 2;
-
-    if (ptr == NULL)
-        return;
+  if (ptr == NULL) return;
+ 
+  // Convert ptb supplied pointer ptr into real start
+  // of our buffer, including our header:
+  ptr = (size_t*)ptr - sizeof(ptr) - sizeof(size_t);
+  if (ptr == NULL) return;
 
     if (PsychTempMemHead == ptr) {
         // Special case: ptr is first buffer in queue. Dequeue:

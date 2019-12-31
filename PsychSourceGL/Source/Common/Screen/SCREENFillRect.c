@@ -83,7 +83,8 @@ PsychError SCREENFillRect(void)
 
 	// The negative position -3 means: xy coords are expected at position 3, but they are optional.
 	// NULL means - don't want a size's vector.
-	PsychPrepareRenderBatch(windowRecord, -3, &numRects, &xy, 2, &nc, &mc, &colors, &bytecolors, 0, &nrsize, NULL, FALSE);
+	//PsychPrepareRenderBatch(windowRecord, -3, &numRects, &xy, 2, &nc, &mc, &colors, &bytecolors, 0, &nrsize, NULL);
+	numRects = 1;
 	isScreenRect=FALSE;
 	
 	// Only up to one rect provided?
@@ -105,12 +106,26 @@ PsychError SCREENFillRect(void)
 		// Fullscreen rect fill which in GL is a special case which may be accelerated.
 		// We only use this fast-path on real onscreen windows, not on textures or
 		// offscreen windows.
-		
-		//Get the color argument or use the default, then coerce to the form determened by the window depth.
-		isArgThere=PsychCopyInColorArg(2, FALSE, &color);
+		static boolean bValue = false;
+		//Get the color argument or use the default, then coerce to the form determened by the window depth.  
+		color.mode = kPsychRGBColor;
+		if (bValue) {
+			color.value.rgb.r = 255;
+			color.value.rgb.g = 0;
+			color.value.rgb.b = 0;
+
+		}
+		else {
+			color.value.rgb.r = 0;
+			color.value.rgb.g = 255;
+			color.value.rgb.b = 0;
+		}
+		bValue = !bValue;
+		//isArgThere=PsychCopyInColorArg(2, FALSE, &color);
+		isArgThere = true;
 		if(!isArgThere){
 			whiteValue=PsychGetWhiteValueFromWindow(windowRecord);
-			PsychLoadColorStruct(&color, kPsychIndexColor, whiteValue ); //index mode will coerce to any other.
+			PsychLoadColorStruct(&color, kPsychRGBColor, whiteValue ); //index mode will coerce to any other.
 		}
 		PsychCoerceColorMode( &color);
 

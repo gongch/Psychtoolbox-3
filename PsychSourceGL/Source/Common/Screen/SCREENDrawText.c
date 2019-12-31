@@ -40,7 +40,7 @@
         http://www.cl.cam.ac.uk/~mgk25/unicode.html - A good FAQ about Unicode, UTF-8 with a special emphasis on Linux and Posix systems.
 
 */
-
+#include "GL/glew.h"
 #include "Screen.h"
 
 // Reference to external dynamically loaded text renderer plugin:
@@ -1539,22 +1539,22 @@ psych_bool PsychLoadTextRendererPlugin(PsychWindowRecordType* windowRecord)
             // If we manage to find the path to that folder, we can load with absolute path and thereby
             // don't need the plugin to be installed in a system folder -- No need for user to manually
             // install it, works plug & play :-)
-            if (strlen(PsychRuntimeGetPsychtoolboxRoot(FALSE)) > 0) {
-                // Yes! Assemble full path name to plugin:
-                if (PSYCH_SYSTEM == PSYCH_WINDOWS) {
-                    sprintf(pluginPath, "%sPsychBasic\\PsychPlugins\\%s", PsychRuntimeGetPsychtoolboxRoot(FALSE), pluginName);
-                }
-                else {
-                    sprintf(pluginPath, "%sPsychBasic/PsychPlugins/%s", PsychRuntimeGetPsychtoolboxRoot(FALSE), pluginName);
-                }
-                if (PsychPrefStateGet_Verbosity() > 5) printf("PTB-DEBUG: DrawText: Trying to load external text renderer plugin from following file: [ %s ]\n", pluginPath);
-            }
-            else {
-                // Failed! Assign only plugin name and hope the user installed the plugin into
-                // a folder on the system library search path:
-                sprintf(pluginPath, "%s", pluginName);
-                if (PsychPrefStateGet_Verbosity() > 2) printf("PTB-INFO: DrawText: Failed to find installation directory for text renderer plugin [ %s ].\nHoping it is somewhere in the library search path...\n", pluginPath);
-            }
+            //if (strlen(PsychRuntimeGetPsychtoolboxRoot(FALSE)) > 0) {
+            //    // Yes! Assemble full path name to plugin:
+            //    if (PSYCH_SYSTEM == PSYCH_WINDOWS) {
+            //        sprintf(pluginPath, "%sPsychBasic\\PsychPlugins\\%s", PsychRuntimeGetPsychtoolboxRoot(FALSE), pluginName);
+            //    }
+            //    else {
+            //        sprintf(pluginPath, "%sPsychBasic/PsychPlugins/%s", PsychRuntimeGetPsychtoolboxRoot(FALSE), pluginName);
+            //    }
+            //    if (PsychPrefStateGet_Verbosity() > 5) printf("PTB-DEBUG: DrawText: Trying to load external text renderer plugin from following file: [ %s ]\n", pluginPath);
+            //}
+            //else {
+            //    // Failed! Assign only plugin name and hope the user installed the plugin into
+            //    // a folder on the system library search path:
+            //    sprintf(pluginPath, "%s", pluginName);
+            //    if (PsychPrefStateGet_Verbosity() > 2) printf("PTB-INFO: DrawText: Failed to find installation directory for text renderer plugin [ %s ].\nHoping it is somewhere in the library search path...\n", pluginPath);
+            //}
 
             #if PSYCH_SYSTEM == PSYCH_WINDOWS
                 drawtext_plugin = LoadLibrary(pluginPath);
@@ -1629,7 +1629,7 @@ psych_bool PsychLoadTextRendererPlugin(PsychWindowRecordType* windowRecord)
             PsychPluginSetAffineTransformMatrix = dlsym(drawtext_plugin, "PsychSetAffineTransformMatrix");
             PsychPluginGetTextCursor = dlsym(drawtext_plugin, "PsychGetTextCursor");
         #else
-            PsychPluginInitText = GetProcAddress(drawtext_plugin, "PsychInitText");
+            /*PsychPluginInitText = GetProcAddress(drawtext_plugin, "PsychInitText");
             PsychPluginShutdownText = GetProcAddress(drawtext_plugin, "PsychShutdownText");
             PsychPluginSetTextFont = GetProcAddress(drawtext_plugin, "PsychSetTextFont");
             PsychPluginGetTextFont = GetProcAddress(drawtext_plugin, "PsychGetTextFont");
@@ -1644,7 +1644,7 @@ psych_bool PsychLoadTextRendererPlugin(PsychWindowRecordType* windowRecord)
             PsychPluginSetTextVerbosity = GetProcAddress(drawtext_plugin, "PsychSetTextVerbosity");
             PsychPluginSetTextAntiAliasing = GetProcAddress(drawtext_plugin, "PsychSetTextAntiAliasing");
             PsychPluginSetAffineTransformMatrix = GetProcAddress(drawtext_plugin, "PsychSetAffineTransformMatrix");
-            PsychPluginGetTextCursor = GetProcAddress(drawtext_plugin, "PsychGetTextCursor");
+            PsychPluginGetTextCursor = GetProcAddress(drawtext_plugin, "PsychGetTextCursor");*/
         #endif
 
         // Assign current level of verbosity:
@@ -1925,140 +1925,131 @@ psych_bool PsychAllocInTextAsUnicode(int position, PsychArgRequirementType isReq
     wchar_t             *textUniString = NULL;
     int                 stringLengthBytes = 0;
 
-    // Anything provided as argument? This checks for presence of the required arg. If an arg
-    // of mismatching type (not char or double) is detected, it errors-out. Otherwise it returns
-    // true on presence of a correct argument, false if argument is absent and optional.
-    if (!PsychCheckInputArgType(position, isRequired, (PsychArgType_char | PsychArgType_double | PsychArgType_uint8))) {
-        // The optional argument isn't present. That means there ain't any work for us to do:
-        goto allocintext_skipped;
-    }
+	//// Anything provided as argument? This checks for presence of the required arg. If an arg
+	//// of mismatching type (not char or double) is detected, it errors-out. Otherwise it returns
+	//// true on presence of a correct argument, false if argument is absent and optional.
+	//if (!PsychCheckInputArgType(position, isRequired, (PsychArgType_char | PsychArgType_double | PsychArgType_uint8))) {
+	//	// The optional argument isn't present. That means there ain't any work for us to do:
+	//	goto allocintext_skipped;
+	//}
 
-    // Some text string available, either double vector or char vector.
+	//// Some text string available, either double vector or char vector.
+	//
+	//// Text string at 'position' passed as C-language encoded character string or string of uint8 bytes?
+ //   if ((PsychGetArgType(position) == PsychArgType_char) || (PsychGetArgType(position) == PsychArgType_uint8)) {
+	//	// Try to allocate in as unsigned byte string:
+	//	if (PsychAllocInUnsignedByteMatArg(position, kPsychArgAnything, &dummy1, &stringLengthBytes, &dummy2, &textByteString)) {
+	//		// Yep: Convert to null-terminated string for further processing:
+	//		if (dummy2!=1) PsychErrorExitMsg(PsychError_user, "Byte text matrices must be 2D matrices!");
+	//		stringLengthBytes = stringLengthBytes * dummy1;
+	//		
+	//		// Nothing to do on empty string:
+	//		if (stringLengthBytes < 1 || textByteString[0] == 0) goto allocintext_skipped;
+	//		
+	//		// A bytestring. Is it null-terminated? If not we need to make it so:
+	//		if (textByteString[stringLengthBytes-1] != 0) {
+	//			// Not null-terminated: Create a 1 byte larger temporary copy which is null-terminated:
+	//			textCString = (char*) PsychMallocTemp(stringLengthBytes + 1);
+	//			memcpy((void*) textCString, (void*) textByteString, stringLengthBytes);
+	//			textCString[stringLengthBytes] = 0;
+	//		}
+	//		else {
+	//			// Already null-terminated: Nice :-)
+	//			textCString = (char*) textByteString;
+	//		}
+	//	}
+	//	else {
+	//		// Null terminated C-Language text string ie., a sequence of bytes. Get it:
+	//		PsychAllocInCharArg(position, TRUE, &textCString);
+	//	}
+	//	
+	//	// Get length in bytes, derived from location of null-terminator character:
+	//	stringLengthBytes = strlen(textCString);
+	//	
+	//	// Empty string? If so, we skip processing:
+	//	if (stringLengthBytes < 1) goto allocintext_skipped;
+	//	
+	//	#if PSYCH_SYSTEM == PSYCH_WINDOWS
+	//		// Windows:
+	//		// Compute number of Unicode wchar_t chars after conversion of multibyte C-String:
+	//		if (drawtext_codepage) {
+	//			// Codepage-based text conversion:
+	//			*textLength = MultiByteToWideChar(drawtext_codepage, 0, textCString, -1, NULL, 0) - 1;
+	//			if (*textLength <= 0) {
+	//				printf("PTB-ERROR: MultiByteToWideChar() returned conversion error code %i.", (int) GetLastError());
+	//				PsychErrorExitMsg(PsychError_user, "Invalid multibyte character sequence detected! Can't convert given char() string to Unicode for DrawText!");
+	//			}
+	//		}
+	//		else {
+	//			// Locale-based text conversion:
+	//			#if defined(MATLAB_R11) || defined(PTBOCTAVE3MEX)
+	//					*textLength = mbstowcs(NULL, textCString, 0);
+	//			#else
+	//					*textLength = mbstowcs_l(NULL, textCString, 0, drawtext_locale);
+	//			#endif
+	//		}
+	//	#else
+	//		// Unix: OS/X, Linux:
+	//		*textLength = mbstowcs_l(NULL, textCString, 0, drawtext_locale);
+	//	#endif
+	//	
+	//	if (*textLength < 0) PsychErrorExitMsg(PsychError_user, "Invalid multibyte character sequence detected! Can't convert given char() string to Unicode for DrawText!");
+	//	
+	//	// Empty string provided? Skip, if so.
+	//	if (*textLength < 1) goto allocintext_skipped;
+	//	
+	//	// Allocate wchar_t buffer of sufficient size to hold converted unicode string:
+	//	textUniString = (wchar_t*) PsychMallocTemp((*textLength + 1) * sizeof(wchar_t));
+	//	
+	//	// Perform conversion of multibyte character sequence to Unicode wchar_t:
+	//	#if PSYCH_SYSTEM == PSYCH_WINDOWS
+	//		// Windows:
+	//		if (drawtext_codepage) {
+	//			// Codepage-based text conversion:
+	//			if (MultiByteToWideChar(drawtext_codepage, 0, textCString, -1, textUniString, (*textLength + 1)) <= 0) {
+	//				printf("PTB-ERROR: MultiByteToWideChar() II returned conversion error code %i.", (int) GetLastError());
+	//				PsychErrorExitMsg(PsychError_user, "Invalid multibyte character sequence detected! Can't convert given char() string to Unicode for DrawText!");
+	//			}
+	//		}
+	//		else {
+	//			// Locale-based text conversion:
+	//			#if defined(MATLAB_R11) || defined(PTBOCTAVE3MEX)
+	//				mbstowcs(textUniString, textCString, (*textLength + 1));
+	//			#else
+	//				mbstowcs_l(textUniString, textCString, (*textLength + 1), drawtext_locale);
+	//			#endif
+	//		}
+	//	#else
+	//		// Unix:
+	//		mbstowcs_l(textUniString, textCString, (*textLength + 1), drawtext_locale);			
+	//	#endif
+	//	
+	//	// Allocate temporary output vector of doubles and copy unicode string into it:
+	//	*unicodeText = (double*) PsychMallocTemp((*textLength + 1) * sizeof(double));
+	//	for (dummy1 = 0; dummy1 < (*textLength + 1); dummy1++) (*unicodeText)[dummy1] = (double) textUniString[dummy1];
+	//}
+	//else {
+	//	// Not a character string: Check if it is a double matrix which directly encodes Unicode text:
+	//	//PsychAllocInDoubleMatArg(position, TRUE, &dummy1, &stringLengthBytes, &dummy2, unicodeText);
+	//	if (dummy2!=1) PsychErrorExitMsg(PsychError_user, "Unicode text matrices must be 2D matrices!");
+	//	stringLengthBytes = stringLengthBytes * dummy1;
+	//	
+	//	// Empty string? If so, we skip processing:
+	//	if(stringLengthBytes < 1) goto allocintext_skipped;
 
-    // Text string at 'position' passed as C-language encoded character string or string of uint8 bytes?
-    if ((PsychGetArgType(position) == PsychArgType_char) || (PsychGetArgType(position) == PsychArgType_uint8)) {
-        // Try to allocate in as unsigned byte string:
-        if (PsychAllocInUnsignedByteMatArg(position, kPsychArgAnything, &dummy1, &stringLengthBytes, &dummy2, &textByteString)) {
-            // Yep: Convert to null-terminated string for further processing:
-            if (dummy2!=1) PsychErrorExitMsg(PsychError_user, "Byte text matrices must be 2D matrices!");
-            stringLengthBytes = stringLengthBytes * dummy1;
+	//	// Nope. Assign output arguments. We can pass-through the unicode double vector as it is
+	//	// already in the proper format:
+	//	*textLength = stringLengthBytes;
+	//}
 
-            // Nothing to do on empty string:
-            if (stringLengthBytes < 1 || textByteString[0] == 0) goto allocintext_skipped;
+	//if (PsychPrefStateGet_Verbosity() > 9) {
+	//	printf("PTB-DEBUG: Allocated unicode string: ");
+	//	for (dummy1 = 0; dummy1 < *textLength; dummy1++) printf("%f ", (float) (*unicodeText)[dummy1]);	
+	//	printf("\n");
+	//}
 
-            // A bytestring. Is it null-terminated? If not we need to make it so:
-            if (textByteString[stringLengthBytes-1] != 0) {
-                // Not null-terminated: Create a 1 byte larger temporary copy which is null-terminated:
-                textCString = (char*) PsychMallocTemp(stringLengthBytes + 1);
-                memcpy((void*) textCString, (void*) textByteString, stringLengthBytes);
-                textCString[stringLengthBytes] = 0;
-            }
-            else {
-                // Already null-terminated: Nice :-)
-                textCString = (char*) textByteString;
-            }
-        }
-        else {
-            // Null terminated C-Language text string ie., a sequence of bytes. Get it:
-            PsychAllocInCharArg(position, TRUE, &textCString);
-        }
-
-        // Get length in bytes, derived from location of null-terminator character:
-        stringLengthBytes = (int) strlen(textCString);
-
-        // Empty string? If so, we skip processing:
-        if (stringLengthBytes < 1) goto allocintext_skipped;
-
-        #if PSYCH_SYSTEM == PSYCH_WINDOWS
-            // Windows:
-            // Compute number of Unicode wchar_t chars after conversion of multibyte C-String:
-            if (drawtext_codepage) {
-                // Codepage-based text conversion:
-                *textLength = MultiByteToWideChar(drawtext_codepage, 0, textCString, -1, NULL, 0) - 1;
-                if (*textLength <= 0) {
-                    printf("PTB-ERROR: MultiByteToWideChar() returned conversion error code %i.", (int) GetLastError());
-                    PsychErrorExitMsg(PsychError_user, "Invalid multibyte character sequence detected! Can't convert given char() string to Unicode for DrawText!");
-                }
-            }
-            else {
-                // Locale-based text conversion:
-
-                // Create backup copy of currently set process global locale:
-                sprintf(oldmswinlocale, "%s", setlocale(LC_CTYPE, NULL));
-
-                // Set process global locale to wanted locale:
-                setlocale(LC_CTYPE, drawtext_localestring);
-
-                // Perform text conversion:
-                *textLength = (int) mbstowcs(NULL, textCString, 0);
-
-                // Reset process global locale to old setting:
-                setlocale(LC_CTYPE, oldmswinlocale);
-            }
-        #else
-            // Unix: OS/X, Linux:
-            *textLength = mbstowcs_l(NULL, textCString, 0, drawtext_locale);
-        #endif
-
-        if (*textLength < 0) PsychErrorExitMsg(PsychError_user, "Invalid multibyte character sequence detected! Can't convert given char() string to Unicode for DrawText!");
-
-        // Empty string provided? Skip, if so.
-        if (*textLength < 1) goto allocintext_skipped;
-
-        // Allocate wchar_t buffer of sufficient size to hold converted unicode string:
-        textUniString = (wchar_t*) PsychMallocTemp((*textLength + 1) * sizeof(wchar_t));
-
-        // Perform conversion of multibyte character sequence to Unicode wchar_t:
-        #if PSYCH_SYSTEM == PSYCH_WINDOWS
-            // Windows:
-            if (drawtext_codepage) {
-                // Codepage-based text conversion:
-                if (MultiByteToWideChar(drawtext_codepage, 0, textCString, -1, textUniString, (*textLength + 1)) <= 0) {
-                    printf("PTB-ERROR: MultiByteToWideChar() II returned conversion error code %i.", (int) GetLastError());
-                    PsychErrorExitMsg(PsychError_user, "Invalid multibyte character sequence detected! Can't convert given char() string to Unicode for DrawText!");
-                }
-            }
-            else {
-                // Set process global locale to wanted locale:
-                setlocale(LC_CTYPE, drawtext_localestring);
-
-                // Locale-based text conversion:
-                mbstowcs(textUniString, textCString, (*textLength + 1));
-
-                // Reset process global locale to old setting:
-                setlocale(LC_CTYPE, oldmswinlocale);
-            }
-        #else
-            // Unix:
-            mbstowcs_l(textUniString, textCString, (*textLength + 1), drawtext_locale);
-        #endif
-
-        // Allocate temporary output vector of doubles and copy unicode string into it:
-        *unicodeText = (double*) PsychMallocTemp((*textLength + 1) * sizeof(double));
-        for (dummy1 = 0; dummy1 < (*textLength + 1); dummy1++) (*unicodeText)[dummy1] = (double) textUniString[dummy1];
-    }
-    else {
-        // Not a character string: Check if it is a double matrix which directly encodes Unicode text:
-        PsychAllocInDoubleMatArg(position, TRUE, &dummy1, &stringLengthBytes, &dummy2, unicodeText);
-        if (dummy2!=1) PsychErrorExitMsg(PsychError_user, "Unicode text matrices must be 2D matrices!");
-        stringLengthBytes = stringLengthBytes * dummy1;
-
-        // Empty string? If so, we skip processing:
-        if(stringLengthBytes < 1) goto allocintext_skipped;
-
-        // Nope. Assign output arguments. We can pass-through the unicode double vector as it is
-        // already in the proper format:
-        *textLength = stringLengthBytes;
-    }
-
-    if (PsychPrefStateGet_Verbosity() > 9) {
-        printf("PTB-DEBUG: Allocated unicode string: ");
-        for (dummy1 = 0; dummy1 < *textLength; dummy1++) printf("%f ", (float) (*unicodeText)[dummy1]);
-        printf("\n");
-    }
-
-    // Successfully allocated a text string as Unicode double vector:
-    return(TRUE);
+	// Successfully allocated a text string as Unicode double vector:
+	return(TRUE);
 
 // We reach this jump-label via goto if there isn't any text string to return:
 allocintext_skipped:
@@ -2069,16 +2060,14 @@ allocintext_skipped:
 
 void PsychDrawCharText(PsychWindowRecordType* winRec, const char* textString, double* xp, double* yp, unsigned int yPositionIsBaseline, PsychColorType *textColor, PsychColorType *backgroundColor, PsychRectType* boundingbox)
 {
-    // Convert textString to Unicode format double vector:
-    unsigned int ix;
-    unsigned int textLength = (unsigned int) strlen(textString);
-    double theight = 0; // theight unused by PsychDrawCharText().
-    double xAdvance = 0; // xAdvance unused.
-    double* unicodeText = (double*) PsychCallocTemp(textLength + 1, sizeof(double));
-    for (ix = 0; ix < textLength; ix++) unicodeText[ix] = (double) textString[ix];
-
-    // Call Unicode text renderer:
-    PsychDrawUnicodeText(winRec, boundingbox, textLength, unicodeText, xp, yp, &theight, &xAdvance, yPositionIsBaseline, (textColor) ? textColor :  &(winRec->textAttributes.textColor), (backgroundColor) ? backgroundColor :  &(winRec->textAttributes.textBackgroundColor), 0);
+	// Convert textString to Unicode format double vector:
+	//int ix;
+	//unsigned int textLength = (unsigned int) strlen(textString);
+	//double* unicodeText = (double*) PsychCallocTemp(textLength + 1, sizeof(double));
+	//for (ix = 0; ix < textLength; ix++) unicodeText[ix] = (double) textString[ix];
+	//
+	//// Call Unicode text renderer:
+	//PsychDrawUnicodeText(winRec, boundingbox, textLength, unicodeText, xp, yp, yPositionIsBaseline, (textColor) ? textColor :  &(winRec->textAttributes.textColor), (backgroundColor) ? backgroundColor :  &(winRec->textAttributes.textBackgroundColor), 0);
 
     // Done.
     return;
@@ -2086,152 +2075,130 @@ void PsychDrawCharText(PsychWindowRecordType* winRec, const char* textString, do
 
 PsychError PsychDrawUnicodeText(PsychWindowRecordType* winRec, PsychRectType* boundingbox, unsigned int stringLengthChars, double* textUniDoubleString, double* xp, double* yp, double* theight, double* xAdvance, unsigned int yPositionIsBaseline, PsychColorType *textColor, PsychColorType *backgroundColor, int swapTextDirection)
 {
-    GLdouble backgroundColorVector[4];
-    GLdouble colorVector[4];
-    GLenum normalSourceBlendFactor, normalDestinationBlendFactor;
-    float xmin, ymin, xmax, ymax, _xadvance;
-    double myyp;
-    double dummy;
-    unsigned int i;
-    int ctx;
-    int rc = 0;
+	//GLdouble		backgroundColorVector[4];
+	//GLdouble		colorVector[4];
+ //   GLenum			normalSourceBlendFactor, normalDestinationBlendFactor;
+	//float			xmin, ymin, xmax, ymax;
+	//double			myyp;
+	//double			dummy;
+	//int				i;
+	//int				rc = 0;
 
-    *xAdvance = 0;
+	//// Invert text string (read it "backwards") if swapTextDirection is requested:
+	//if (swapTextDirection) {
+	//	for(i = 0; i < stringLengthChars/2; i++) {
+	//		dummy = textUniDoubleString[i];
+	//		textUniDoubleString[i] = textUniDoubleString[stringLengthChars - i - 1];
+	//		textUniDoubleString[stringLengthChars - i - 1] = dummy;
+	//	}
+	//}
+	//
+	//// Does usercode want us to use a text rendering plugin instead of our standard OS specific renderer?
+	//// If so, load it if not already loaded:
+	//if (((PsychPrefStateGet_TextRenderer() == 2) || ((PsychPrefStateGet_TextRenderer() == 1) && (PSYCH_SYSTEM == PSYCH_LINUX))) &&	
+	//    PsychLoadTextRendererPlugin(winRec)) {
 
-    // Invert text string (read it "backwards") if swapTextDirection is requested:
-    if (swapTextDirection) {
-        for(i = 0; i < stringLengthChars/2; i++) {
-            dummy = textUniDoubleString[i];
-            textUniDoubleString[i] = textUniDoubleString[stringLengthChars - i - 1];
-            textUniDoubleString[stringLengthChars - i - 1] = dummy;
-        }
-    }
+	//	// Use external dynamically loaded plugin:
 
-    // Does usercode want us to use a text rendering plugin instead of our standard OS specific renderer?
-    // If so, load it if not already loaded:
-    if ((PsychPrefStateGet_TextRenderer() > 0) && PsychLoadTextRendererPlugin(winRec)) {
+	//	// Assign current level of verbosity:
+	//	PsychPluginSetTextVerbosity((unsigned int) PsychPrefStateGet_Verbosity());
 
-        // Use external dynamically loaded plugin:
+	//	// Assign current anti-aliasing settings:
+	//	PsychPluginSetTextAntiAliasing(PsychPrefStateGet_TextAntiAliasing());
 
-        // Get ctx context id for this window:
-        ctx = (int) (PsychGetParentWindow(winRec))->windowIndex;
+	//	// Assign font family name of requested font:
+	//	PsychPluginSetTextFont((const char*) winRec->textAttributes.textFontName);
 
-        // Assign current level of verbosity:
-        PsychPluginSetTextVerbosity((unsigned int) PsychPrefStateGet_Verbosity());
+	//	// Assign style settings, e.g., bold, italic etc.:
+	//	PsychPluginSetTextStyle(winRec->textAttributes.textStyle);
 
-        // Assign current anti-aliasing settings:
-        PsychPluginSetTextAntiAliasing(ctx, PsychPrefStateGet_TextAntiAliasing());
+	//	// Assign text size in pixels:
+	//	PsychPluginSetTextSize((double) winRec->textAttributes.textSize);
 
-        // Assign font family name of requested font:
-        PsychPluginSetTextFont(ctx, (const char*) winRec->textAttributes.textFontName);
+	//	// Assign viewport settings for rendering:
+	//	PsychPluginSetTextViewPort(winRec->clientrect[kPsychLeft], winRec->clientrect[kPsychTop], PsychGetWidthFromRect(winRec->clientrect), PsychGetHeightFromRect(winRec->clientrect));
 
-        // Assign style settings, e.g., bold, italic etc.:
-        PsychPluginSetTextStyle(ctx, winRec->textAttributes.textStyle);
+	//	// Compute and assign text background color:
+	//	PsychCoerceColorMode(backgroundColor);
+	//	PsychConvertColorToDoubleVector(backgroundColor, winRec, backgroundColorVector);
+	//	PsychPluginSetTextBGColor(backgroundColorVector);
+	//	
+	//	// Compute and assign text foreground color - the actual color of the glyphs:
+	//	PsychCoerceColorMode(textColor);
+	//	PsychConvertColorToDoubleVector(textColor, winRec, colorVector);
+	//	PsychPluginSetTextFGColor(colorVector);
+	//	
+	//	// Enable this windowRecords framebuffer as current drawingtarget:
+	//	PsychSetDrawingTarget(winRec);
+	//	
+	//	// Save all state:
+	//	glPushAttrib(GL_ALL_ATTRIB_BITS);
+	//	
+	//	// Disable draw shader:
+	//	PsychSetShader(winRec, 0);
+	//	
+	//	// Override current alpha blending settings to GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA unless
+	//	// usercode explicitely requested to use the regular Screen('Blendfunction') settings.
+	//	// This is needed to perform proper text anti-aliasing via alpha-blending:
+	//	if (!PsychPrefStateGet_TextAlphaBlending()) {
+	//		PsychGetAlphaBlendingFactorsFromWindow(winRec, &normalSourceBlendFactor, &normalDestinationBlendFactor);
+	//		PsychStoreAlphaBlendingFactorsForWindow(winRec, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//	}
+	//	
+	//	// Apply blending settings:
+	//	PsychUpdateAlphaBlendingFactorLazily(winRec);
+	//	
+	//	// Disable apple client storage - it could interfere:
+	//	#if PSYCH_SYSTEM == PSYCH_OSX
+	//		glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_FALSE);
+	//	#endif
+	//	
+	//	// Compute bounding box of drawn string:
+	//	rc = PsychPluginMeasureText(stringLengthChars, textUniDoubleString, &xmin, &ymin, &xmax, &ymax);
 
-        // Assign text size in pixels:
-        PsychPluginSetTextSize(ctx, (double) winRec->textAttributes.textSize);
+	//	// Handle definition of yp properly: Is it the text baseline, or the top of the text bounding box?
+	//	if (yPositionIsBaseline) {
+	//		myyp = *yp;
+	//	}
+	//	else {
+	//		myyp = *yp + ymax;
+	//	}
 
-        // Retrieve true text font family name:
-        sprintf((char*) &(winRec->textAttributes.textFontName[0]), "%s", PsychPluginGetTextFont(ctx));
+	//	// Only bounding box requested?
+	//	if (boundingbox) {
+	//		// Yes. Return it:
+	//		PsychMakeRect((double*) boundingbox, xmin + *xp, myyp - ymax, xmax + *xp, myyp - ymin);
+	//	}
+	//	else {
+	//		// Draw text by calling into the plugin:
+	//		rc += PsychPluginDrawText(*xp, winRec->clientrect[kPsychBottom] - myyp, stringLengthChars, textUniDoubleString);
+	//	}
+	//	
+	//	// Restore alpha-blending settings if needed:
+	//	if (!PsychPrefStateGet_TextAlphaBlending()) PsychStoreAlphaBlendingFactorsForWindow(winRec, normalSourceBlendFactor, normalDestinationBlendFactor);
 
-        // Assign viewport settings for rendering:
-        PsychPluginSetTextViewPort(ctx, winRec->clientrect[kPsychLeft], winRec->clientrect[kPsychTop], PsychGetWidthFromRect(winRec->clientrect), PsychGetHeightFromRect(winRec->clientrect));
-
-        // Compute and assign text background color:
-        PsychCoerceColorMode(backgroundColor);
-        PsychConvertColorToDoubleVector(backgroundColor, winRec, backgroundColorVector);
-        PsychPluginSetTextBGColor(ctx, backgroundColorVector);
-
-        // Compute and assign text foreground color - the actual color of the glyphs:
-        PsychCoerceColorMode(textColor);
-        PsychConvertColorToDoubleVector(textColor, winRec, colorVector);
-        PsychPluginSetTextFGColor(ctx, colorVector);
-
-        // Apply affine 2D transformation matrix if the plugin supports this:
-        if (PsychPluginSetAffineTransformMatrix)
-            PsychPluginSetAffineTransformMatrix(ctx, winRec->text2DMatrix);
-
-        // Enable this windowRecords framebuffer as current drawingtarget:
-        PsychSetDrawingTarget(winRec);
-
-        // Save all state:
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
-
-        // Disable draw shader:
-        PsychSetShader(winRec, 0);
-
-        // Override current alpha blending settings to GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA unless
-        // usercode explicitely requested to use the regular Screen('Blendfunction') settings.
-        // This is needed to perform proper text anti-aliasing via alpha-blending:
-        if (!PsychPrefStateGet_TextAlphaBlending()) {
-            PsychGetAlphaBlendingFactorsFromWindow(winRec, &normalSourceBlendFactor, &normalDestinationBlendFactor);
-            PsychStoreAlphaBlendingFactorsForWindow(winRec, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        }
-
-        // Apply blending settings:
-        PsychUpdateAlphaBlendingFactorLazily(winRec);
-
-        // Disable apple client storage - it could interfere:
-        #if PSYCH_SYSTEM == PSYCH_OSX
-            glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_FALSE);
-        #endif
-
-        // Compute bounding box of drawn string:
-        rc = PsychPluginMeasureText(ctx, stringLengthChars, textUniDoubleString, &xmin, &ymin, &xmax, &ymax, &_xadvance);
-
-        // Handle definition of yp properly: Is it the text baseline, or the top of the text bounding box?
-        if (yPositionIsBaseline) {
-            myyp = *yp;
-        }
-        else {
-            myyp = *yp + ymax;
-        }
-
-        // Only bounding box requested?
-        if (boundingbox) {
-            // Yes. Return it:
-            PsychMakeRect((double*) boundingbox, xmin + *xp, myyp - ymax, xmax + *xp, myyp - ymin);
-            *xAdvance = (double) _xadvance;
-        }
-        else {
-            // Draw text by calling into the plugin:
-            rc += PsychPluginDrawText(ctx, *xp, myyp, stringLengthChars, textUniDoubleString);
-        }
-
-        // Restore alpha-blending settings if needed:
-        if (!PsychPrefStateGet_TextAlphaBlending()) PsychStoreAlphaBlendingFactorsForWindow(winRec, normalSourceBlendFactor, normalDestinationBlendFactor);
-
-        // Restore GL state:
-        glPopAttrib();
-
-        // Mark end of drawing op. This is needed for single buffered drawing:
-        PsychFlushGL(winRec);
-
-        // Plugin rendering successfull?
-        if (0 == rc) {
-            // Yes. Update x position of text drawing cursor:
-            if (PsychPluginGetTextCursor) {
-                // Plugin provides accurate text cursor measurement - use it:
-                PsychPluginGetTextCursor(ctx, xp, yp, theight);
-                if (!yPositionIsBaseline)
-                    *yp = *yp - ymax;
-            }
-            else {
-                // Fallback, leave yp, update xp via bounding box:
-                *xp = *xp + (xmax - xmin + 1);
-            }
-
-            // Return control to calling function:
-            return(PsychError_none);
-        }
-
-        // If we reach this point then the plugin failed to render text:
-        PsychErrorExitMsg(PsychError_user, "The external text renderer plugin failed to render the text string for some reason!");
-    }
-
-    // If we reach this point then either text rendering via OS specific legacy renderer is requested, or
-    // the external rendering plugin failed to load and we use the OS specific legacy renderer as fallback.
-    return(PsychOSDrawUnicodeText(winRec, boundingbox, stringLengthChars, textUniDoubleString, xp, yp, yPositionIsBaseline, textColor, backgroundColor));
+	//	// Restore GL state:
+	//	glPopAttrib();
+	//	
+	//	// Mark end of drawing op. This is needed for single buffered drawing:
+	//	PsychFlushGL(winRec);
+	//	
+	//	// Plugin rendering successfull?
+	//	if (0 == rc) {
+	//		// Yes. Update x position of text drawing cursor:
+	//		*xp = *xp + (xmax - xmin + 1);
+	//		
+	//		// Return control to calling function:
+	//		return(PsychError_none);
+	//	}
+	//	
+	//	// If we reach this point then the plugin failed to render text:
+	//	PsychErrorExitMsg(PsychError_user, "The external text renderer plugin failed to render the text string for some reason!");
+	//}
+	//
+	// If we reach this point then either text rendering via OS specific renderer is requested, or
+	// the external rendering plugin failed to load and we use the OS specific renderer as fallback.
+	return(PsychOSDrawUnicodeText(winRec, boundingbox, stringLengthChars, textUniDoubleString, xp, yp, yPositionIsBaseline, textColor, backgroundColor));
 }
 
 
@@ -2247,9 +2214,9 @@ PsychError SCREENDrawText(void)
     double                      theight = 0;
     double                      xAdvance = 0;
 
-    // All subfunctions should have these two lines.
-    PsychPushHelp(useString, synopsisString, seeAlsoString);
-    if (PsychIsGiveHelp()) { PsychGiveHelp(); return(PsychError_none); };
+    // All subfunctions should have these two lines.  
+    //PsychPushHelp(useString, synopsisString, seeAlsoString);
+    //if (PsychIsGiveHelp()) { PsychGiveHelp(); return(PsychError_none); };
 
     PsychErrorExit(PsychCapNumInputArgs(8));
     PsychErrorExit(PsychRequireNumInputArgs(2));
@@ -2263,10 +2230,10 @@ PsychError SCREENDrawText(void)
     if(!PsychAllocInTextAsUnicode(2, kPsychArgRequired, &stringLengthChars, &textUniDoubleString)) goto drawtext_skipped;
 
     // Get the X and Y positions.
-    PsychCopyInDoubleArg(3, kPsychArgOptional, &(winRec->textAttributes.textPositionX));
-    PsychCopyInDoubleArg(4, kPsychArgOptional, &(winRec->textAttributes.textPositionY));
-
-    //Get the new color record, coerce it to the correct mode, and store it.
+    //PsychCopyInDoubleArg(3, kPsychArgOptional, &(winRec->textAttributes.textPositionX));
+    //PsychCopyInDoubleArg(4, kPsychArgOptional, &(winRec->textAttributes.textPositionY));
+    
+    //Get the new color record, coerce it to the correct mode, and store it.  
     doSetColor = PsychCopyInColorArg(5, kPsychArgOptional, &colorArg);
     if (doSetColor) PsychSetTextColorInWindowRecord(&colorArg, winRec);
 
@@ -2281,12 +2248,12 @@ PsychError SCREENDrawText(void)
 
     // Special handling of offset for y position correction:
     yPositionIsBaseline = PsychPrefStateGet_TextYPositionIsBaseline();
-    PsychCopyInIntegerArg(7, kPsychArgOptional, &yPositionIsBaseline);
+    //PsychCopyInIntegerArg(7, kPsychArgOptional, &yPositionIsBaseline);
 
     // Get optional text writing direction flag: Defaults to left->right aka 0:
     swapTextDirection = 0;
-    PsychCopyInIntegerArg(8, kPsychArgOptional, &swapTextDirection);
-
+    //PsychCopyInIntegerArg(8, kPsychArgOptional, &swapTextDirection);
+	
     // Call Unicode text renderer: This will update the current text cursor positions as well.
     PsychDrawUnicodeText(winRec, NULL, stringLengthChars, textUniDoubleString, &(winRec->textAttributes.textPositionX), &(winRec->textAttributes.textPositionY), &theight, &xAdvance, yPositionIsBaseline, &(winRec->textAttributes.textColor), &(winRec->textAttributes.textBackgroundColor), swapTextDirection);
 
@@ -2294,88 +2261,9 @@ PsychError SCREENDrawText(void)
 drawtext_skipped:
 
     // Copy out new, potentially updated, "cursor position":
-    PsychCopyOutDoubleArg(1, FALSE, winRec->textAttributes.textPositionX);
-    PsychCopyOutDoubleArg(2, FALSE, winRec->textAttributes.textPositionY);
-    PsychCopyOutDoubleArg(3, FALSE, theight);
-
-    // Done.
-    return(PsychError_none);
-}
-
-PsychError SCREENTextTransform(void)
-{
-    // If you change useString then also change the corresponding synopsis string in ScreenSynopsis.
-    static char useString[] = "oldMatrix = Screen('TextTransform', windowPtr [, newMatrix]);";
-    //                         1                                   1            2
-
-    // Synopsis string for DrawText:
-    static char synopsisString[] =
-    "Query or assign a 2D matrix defining a 2D affine transformation to apply to drawn text.\n"
-    "'windowPtr' is the handle to the window for which the affine transform should be assigned "
-    "or queried.\n"
-    "'newMatrix' is an optional new 2x3 affine transformation matrix to assign.\n"
-    "'oldMatrix' is the currently assigned 2x3 affine transformation matrix.\n"
-    "The first 2 columns encode the 2x2 matrix, the 3rd column encodes tx, ty translation:\n"
-    "[ xx, xy, tx ]\n"
-    "[ yx, yy, ty ]\n\n"
-    "The affine transformation matrix defaults to an identity transformation matrix, "
-    "in other words, no affine transformation is applied to a window by default.\n"
-    "Not all text renderers do support application of affine transformations to text. If a "
-    "renderer does not support affine transformations then the selected affine transformation "
-    "is silently ignored during text drawing. As of February 2016 only the standard FTGL text "
-    "renderer supports affine transforms in a meaningful way. The legacy Apple OSX CoreText "
-    "renderer only supports transforms in a somewhat broken and limited manner, at drastically "
-    "reduced performance.\n"
-    "The precision of text bounding boxes as returned by Screen('TextBounds') may be impaired "
-    "if non-identity affine transformations are applied. Text positioning may also be impaired. "
-    "Different text renderers may provide inconsistent results wrt. text positioning and bounding "
-    "boxes.\n"
-    "In most cases it is better to use the general geometric stimulus post-processing of the "
-    "Psychtoolbox image processing pipeline to apply geometric transformations to text and other "
-    "visual content. This allows you to work in an easy to understand coordinate frame, with accurate "
-    "text positioning, bounding boxes etc. and apply a consistent transformation to both text and other "
-    "visual stimulus content as a post-processing step.\n";
-
-    static char seeAlsoString[] = "TextBounds TextSize TextFont TextStyle TextColor TextBackgroundColor Preference";
-
-    PsychWindowRecordType *winRec;
-    int m, n, p;
-    double* inMatrix;
-    double* outMatrix;
-
-    // All subfunctions should have these two lines.
-    PsychPushHelp(useString, synopsisString, seeAlsoString);
-    if (PsychIsGiveHelp()) { PsychGiveHelp(); return(PsychError_none); };
-
-    PsychErrorExit(PsychCapNumInputArgs(2));
-    PsychErrorExit(PsychRequireNumInputArgs(1));
-    PsychErrorExit(PsychCapNumOutputArgs(1));
-
-    //Get the window structure for the onscreen window.
-    PsychAllocInWindowRecordArg(1, TRUE, &winRec);
-
-    // Optionally return old transformation matrix:
-    PsychAllocOutDoubleMatArg(1, kPsychArgOptional, 2, 3, 1, &outMatrix);
-    *(outMatrix++) = winRec->text2DMatrix[0][0];
-    *(outMatrix++) = winRec->text2DMatrix[1][0];
-    *(outMatrix++) = winRec->text2DMatrix[0][1];
-    *(outMatrix++) = winRec->text2DMatrix[1][1];
-    *(outMatrix++) = winRec->text2DMatrix[0][2];
-    *(outMatrix++) = winRec->text2DMatrix[1][2];
-
-    // Optionally get new transformation matrix:
-    if (PsychAllocInDoubleMatArg(2, kPsychArgOptional, &m, &n, &p, &inMatrix)) {
-        if (m != 2 || n != 3 || p > 1)
-            PsychErrorExitMsg(PsychError_user, "Invalid affine transformation matrix 'newMatrix' provided! Not a 2-by-3 matrix.");
-
-        winRec->text2DMatrix[0][0] = *(inMatrix++);
-        winRec->text2DMatrix[1][0] = *(inMatrix++);
-        winRec->text2DMatrix[0][1] = *(inMatrix++);
-        winRec->text2DMatrix[1][1] = *(inMatrix++);
-        winRec->text2DMatrix[0][2] = *(inMatrix++);
-        winRec->text2DMatrix[1][2] = *(inMatrix++);
-    }
-
+    //PsychCopyOutDoubleArg(1, FALSE, winRec->textAttributes.textPositionX);
+    //PsychCopyOutDoubleArg(2, FALSE, winRec->textAttributes.textPositionY);
+    
     // Done.
     return(PsychError_none);
 }

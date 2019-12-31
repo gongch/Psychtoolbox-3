@@ -25,6 +25,19 @@
 
 #include "Screen.h"
 
+#if PSYCH_SYSTEM != PSYCH_LINUX
+#if !defined(__LP64__) && !defined(_M_IA64)
+//#define PSYCHQTAVAIL 1
+#include "PsychMovieSupportQuickTime.h"
+#endif
+#endif
+
+#if defined(__LP64__) || defined(_M_IA64)
+#define PSYCHOTHER64BIT 1
+#else
+#define PSYCHOTHER64BIT 0
+#endif
+
 #ifdef PTB_USE_GSTREAMER
 #include "PsychMovieSupportGStreamer.h"
 #endif

@@ -80,8 +80,10 @@ psych_bool PsychIsMemberDepthStruct(PsychDepthType *depth, PsychDepthType *depth
     int numDepths, i;
     
     numDepths=PsychGetNumDepthsFromStruct(depth);
-    if(numDepths>1)
-        PsychErrorExitMsg(PsychError_internal, "depth structure contains multiple depths");
+	if (numDepths > 1)
+	{
+		PsychErrorExitMsg(PsychError_internal, "depth structure contains multiple depths");
+	}
     else if(numDepths==0)
         return(FALSE);
     for(i=0;i<PsychGetNumDepthsFromStruct(depthSet);i++){

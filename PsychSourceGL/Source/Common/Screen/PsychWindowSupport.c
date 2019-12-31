@@ -42,9 +42,9 @@
     NOTES:
 
 */
-
+#include <GL/glew.h>
 #include "Screen.h"
-
+#include "PsychGraphicsCardRegisterSpecs.h"
 // Define this for non-Waffle builds:
 #ifndef WAFFLE_PLATFORM_WAYLAND
 #define WAFFLE_PLATFORM_WAYLAND 0x0014
@@ -372,16 +372,15 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
     //call PsychPurgeInvalidWindows which will clean up the window record.
     PsychCreateWindowRecord(windowRecord);          //this also fills the window index field.
 
-    // Show our "splash-screen wannabe" startup message at opening of first onscreen window:
-    // Also init the thread handle to our main thread here:
-    if ((*windowRecord)->windowIndex == PSYCH_FIRST_WINDOW) {
-        if(PsychPrefStateGet_Verbosity()>2) {
-            printf("\n\nPTB-INFO: This is Psychtoolbox-3 for %s, under %s (Version %i.%i.%i - Build date: %s).\n", PSYCHTOOLBOX_OS_NAME, PSYCHTOOLBOX_SCRIPTING_LANGUAGE_NAME, PsychGetMajorVersionNumber(), PsychGetMinorVersionNumber(), PsychGetPointVersionNumber(), PsychGetBuildDate());
-            printf("PTB-INFO: OS support status: %s\n", PsychSupportStatus());
-            printf("PTB-INFO: Type 'PsychtoolboxVersion' for more detailed version information.\n");
-            printf("PTB-INFO: Most parts of the Psychtoolbox distribution are licensed to you under terms of the MIT License, with\n");
-            printf("PTB-INFO: some restrictions. See file 'License.txt' in the Psychtoolbox root folder for the exact licensing conditions.\n\n");
-        }
+	// Show our "splash-screen wannabe" startup message at opening of first onscreen window:
+	// Also init the thread handle to our main thread here:
+	if ((*windowRecord)->windowIndex == PSYCH_FIRST_WINDOW) {
+		if(PsychPrefStateGet_Verbosity()>2) {
+			printf("\n\nPTB-INFO: This is Psychtoolbox-3 for %s, under %s (Version %i.%i.%i - Build date: %s).\n", PSYCHTOOLBOX_OS_NAME, "", PsychGetMajorVersionNumber(), PsychGetMinorVersionNumber(), PsychGetPointVersionNumber(), PsychGetBuildDate());
+			printf("PTB-INFO: Type 'PsychtoolboxVersion' for more detailed version information.\n"); 
+			printf("PTB-INFO: Most parts of the Psychtoolbox distribution are licensed to you under terms of the MIT License, with\n");
+			printf("PTB-INFO: some restrictions. See file 'License.txt' in the Psychtoolbox root folder for the exact licensing conditions.\n\n");
+		}
 
         if (PsychPrefStateGet_EmulateOldPTB() && PsychPrefStateGet_Verbosity()>1) {
             printf("PTB-INFO: Psychtoolbox is running in compatibility mode to old MacOS-9 PTB. This is an experimental feature with\n");
@@ -774,70 +773,70 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
 
         // We load and display the splash image if the 'welcome' screen is enabled and we can
         // find it:
-        if ((visual_debuglevel >= 4) && (strlen(PsychRuntimeGetPsychtoolboxRoot(FALSE)) > 0)) {
-            // Yes! Assemble full path name to splash image:
-            sprintf(splashPath, "%sPsychBasic/WelcomeSplash.ppm", PsychRuntimeGetPsychtoolboxRoot(FALSE));
+        //if ((visual_debuglevel >= 4) && (strlen(PsychRuntimeGetPsychtoolboxRoot(FALSE)) > 0)) {
+        //    // Yes! Assemble full path name to splash image:
+        //    sprintf(splashPath, "%sPsychBasic/WelcomeSplash.ppm", PsychRuntimeGetPsychtoolboxRoot(FALSE));
 
-            // Try to open splash image file:
-            splashFd = fopen(splashPath, "rb");
-            if (splashFd) {
-                // Worked. Read header:
+        //    // Try to open splash image file:
+        //    splashFd = fopen(splashPath, "rb");
+        //    if (splashFd) {
+        //        // Worked. Read header:
 
-                // Check for valid "P6" magic of PPM file:
-                dummychar = fgets(splashPath, sizeof(splashPath), splashFd);
-                splash_image.bytes_per_pixel = (strstr(splashPath, "P6")) ? 1 : 0;
-                if (PsychPrefStateGet_Verbosity() > 5) printf("PTB-DEBUG: PPM file magic is %s -> %s\n", splashPath, (splash_image.bytes_per_pixel) ? "Ok" : "Rejected");
+        //        // Check for valid "P6" magic of PPM file:
+        //        dummychar = fgets(splashPath, sizeof(splashPath), splashFd);
+        //        splash_image.bytes_per_pixel = (strstr(splashPath, "P6")) ? 1 : 0;
+        //        if (PsychPrefStateGet_Verbosity() > 5) printf("PTB-DEBUG: PPM file magic is %s -> %s\n", splashPath, (splash_image.bytes_per_pixel) ? "Ok" : "Rejected");
 
-                // Skip comment lines...
-                while (fgets(splashPath, sizeof(splashPath), splashFd) && strstr(splashPath, "#")) if (PsychPrefStateGet_Verbosity() > 5) {
-                    printf("%s", splashPath);
-                }
+        //        // Skip comment lines...
+        //        while (fgets(splashPath, sizeof(splashPath), splashFd) && strstr(splashPath, "#")) if (PsychPrefStateGet_Verbosity() > 5) {
+        //            printf("%s", splashPath);
+        //        }
 
-                // Check for valid header:
-                if ((splash_image.bytes_per_pixel) && (2 == sscanf(splashPath, "%i %i", &splash_image.width, &splash_image.height)) &&
-                    (1 == fscanf(splashFd, "%i", &splash_image.bytes_per_pixel)) &&
-                    (splash_image.width > 0 && splash_image.width <= 1280) && (splash_image.height > 0 && splash_image.height <= 1024) &&
-                    (splash_image.bytes_per_pixel == 255)) {
+        //        // Check for valid header:
+        //        if ((splash_image.bytes_per_pixel) && (2 == sscanf(splashPath, "%i %i", &splash_image.width, &splash_image.height)) &&
+        //            (1 == fscanf(splashFd, "%i", &splash_image.bytes_per_pixel)) &&
+        //            (splash_image.width > 0 && splash_image.width <= 1280) && (splash_image.height > 0 && splash_image.height <= 1024) &&
+        //            (splash_image.bytes_per_pixel == 255)) {
 
-                    // Header for a PPM file read, detected and valid. Image dimensions within valid size range up to 1024 x 768, 8 bpc, 24 bpp.
-                    if (PsychPrefStateGet_Verbosity() > 5) {
-                        printf("PTB-DEBUG: Recognized splash image of %i x %i pixels, maxlevel %i. Loading...\n", splash_image.width, splash_image.height, splash_image.bytes_per_pixel);
-                    }
+        //            // Header for a PPM file read, detected and valid. Image dimensions within valid size range up to 1024 x 768, 8 bpc, 24 bpp.
+        //            if (PsychPrefStateGet_Verbosity() > 5) {
+        //                printf("PTB-DEBUG: Recognized splash image of %i x %i pixels, maxlevel %i. Loading...\n", splash_image.width, splash_image.height, splash_image.bytes_per_pixel);
+        //            }
 
-                    // Allocate image buffer:
-                    splash_image.bytes_per_pixel = 0;
-                    if ((splash_image.pixel_data = (unsigned char*) malloc(splash_image.width * splash_image.height * 3)) != NULL) {
-                        // Allocated. Read content:
+        //            // Allocate image buffer:
+        //            splash_image.bytes_per_pixel = 0;
+        //            if ((splash_image.pixel_data = (unsigned char*) malloc(splash_image.width * splash_image.height * 3)) != NULL) {
+        //                // Allocated. Read content:
 
-                        // Skip one byte:
-                        i = (int) fread(splash_image.pixel_data, 1, 1, splashFd);
+        //                // Skip one byte:
+        //                i = (int) fread(splash_image.pixel_data, 1, 1, splashFd);
 
-                        if (fread(splash_image.pixel_data, splash_image.width * splash_image.height * 3, 1, splashFd) == 1) {
-                            // Success! Mark loaded splash image as "valid" and set its format:
-                            splash_image.bytes_per_pixel = GL_RGB;
-                        }
-                        else {
-                            // Read failed. Revert to default splash:
-                            free(splash_image.pixel_data);
-                            splash_image.pixel_data = NULL;
-                        }
-                    }
-                }
-                else {
-                    if (PsychPrefStateGet_Verbosity() > 5) {
-                        printf("PTB-DEBUG: Splash image rejected: %s, %i x %i maxlevel %i. Fallback...\n", splashPath, splash_image.width, splash_image.height, splash_image.bytes_per_pixel);
-                    }
-                    splash_image.bytes_per_pixel = 0;
-                }
+        //                if (fread(splash_image.pixel_data, splash_image.width * splash_image.height * 3, 1, splashFd) == 1) {
+        //                    // Success! Mark loaded splash image as "valid" and set its format:
+        //                    splash_image.bytes_per_pixel = GL_RGB;
+        //                }
+        //                else {
+        //                    // Read failed. Revert to default splash:
+        //                    free(splash_image.pixel_data);
+        //                    splash_image.pixel_data = NULL;
+        //                }
+        //            }
+        //        }
+        //        else {
+        //            if (PsychPrefStateGet_Verbosity() > 5) {
+        //                printf("PTB-DEBUG: Splash image rejected: %s, %i x %i maxlevel %i. Fallback...\n", splashPath, splash_image.width, splash_image.height, splash_image.bytes_per_pixel);
+        //            }
+        //            splash_image.bytes_per_pixel = 0;
+        //        }
 
-                fclose(splashFd);
-            }
-            else {
-                // Failed: We don't care why.
-                if (PsychPrefStateGet_Verbosity() > 5) printf("PTB-DEBUG: Failed to read splash image from %s [%s].\n", splashPath, strerror(errno));
-                errno = 0;
-            }
-        }
+        //        fclose(splashFd);
+        //    }
+        //    else {
+        //        // Failed: We don't care why.
+        //        if (PsychPrefStateGet_Verbosity() > 5) printf("PTB-DEBUG: Failed to read splash image from %s [%s].\n", splashPath, strerror(errno));
+        //        errno = 0;
+        //    }
+        //}
         // End of splash image one-time setup per session.
     }
 
@@ -853,7 +852,7 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
         // Splash image ready. Check if the splash image should be shown for
         // longer because a Psychtoolbox update/installation was just performed
         // and this is the first invocation of Screen() since then.
-        sprintf(splashPath, "%sscreen_buildnr_%i", PsychRuntimeGetPsychtoolboxRoot(TRUE), PsychGetBuildNumber());
+        sprintf(splashPath, "%sscreen_buildnr_%i", "", PsychGetBuildNumber());
 
         // Does the marker file for this Screen build already exist?
         splashFd = fopen(splashPath, "r");
@@ -6570,7 +6569,7 @@ void PsychSetupView(PsychWindowRecordType *windowRecord, psych_bool useRawFrameb
             gluOrtho2D(rect[kPsychLeft], rect[kPsychRight], rect[kPsychBottom], rect[kPsychTop]);
         }
         else {
-            glOrthofOES((float) rect[kPsychLeft], (float) rect[kPsychRight], (float) rect[kPsychBottom], (float) rect[kPsychTop], (float) -1, (float) 1);
+            //glOrthofOES((float) rect[kPsychLeft], (float) rect[kPsychRight], (float) rect[kPsychBottom], (float) rect[kPsychTop], (float) -1, (float) 1);
         }
     }
     else {

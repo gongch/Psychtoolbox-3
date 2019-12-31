@@ -26,6 +26,11 @@
 // statically, this should not be increased beyond reasonable limits. 100 is always a nice number:
 #define PSYCH_MAX_CAPTUREDEVICES 100
 
+// Unconditionally enable Quicktime Sequencegrabber capture support on OS/X and Windows:
+#if PSYCH_SYSTEM != PSYCH_LINUX
+//#define PTBVIDEOCAPTURE_QT 1
+#endif
+
 #include "Screen.h"
 
 typedef struct rawcapimgdata {

@@ -1,0 +1,118 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="PsychScreen.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\PsychScreenGlue.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\PsychWindowGlue.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\PsychWindowTextGlue.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\glew.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Base\PsychTimeGlue.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\PsychRects.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\ScreenTypes.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\PsychGraphicsHardwareHALSupport.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\ScreenPreferenceState.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\SCREENDrawText.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Base\MiniBox.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\WindowBank.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\PsychWindowSupport.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Base\PsychVersioning.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\PsychMovieSupport.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\PsychTextureSupport.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\WindowHelpers.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\PsychGLGlue.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Base\PsychError.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Base\PsychRegisterProject.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Base\PsychHelp.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\ScreenArguments.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\PsychImagingPipelineSupport.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Base\PsychMemory.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\SCREENSelectStereoDrawBuffer.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\PsychAlphaBlending.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\SCREENCloseAll.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\PsychMovieWritingSupportGStreamer.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\PsychVideoCaptureSupport.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\SCREENFlip.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\SCREENOpenWindow.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Screen\SCREENFillRect.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

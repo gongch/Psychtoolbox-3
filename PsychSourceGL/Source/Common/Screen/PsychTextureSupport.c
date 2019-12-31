@@ -34,7 +34,7 @@
  *        Psychtoolbox functions for dealing with textures.
  *
  */
-
+#include <GL/glew.h>
 #include "Screen.h"
 
 // If set to true, then the apple client storage extensions are used: I doubt that they have any

@@ -63,41 +63,41 @@ PsychError PsychDescribeModuleFunctions(void)
 
 	char*						subfname;
     int							i;
-    PsychGenericScriptType		*cellVector;
-	PsychFunctionPtr			fcn;
-	
-    //all subfunctions should have these two lines.  
-    PsychPushHelp(useString, synopsisString, seeAlsoString);
-    if(PsychIsGiveHelp()){PsychGiveHelp();return(PsychError_none);};
-    
-    // Check for valid number of arguments
-    PsychErrorExit(PsychCapNumInputArgs(2));   	
-    PsychErrorExit(PsychCapNumOutputArgs(1)); 
-    
-	PsychCopyInIntegerArg(1, FALSE, &i);
-	
-	subfname = NULL;
-	PsychAllocInCharArg(2, FALSE, &subfname);
-	
-	if (subfname) {
-		// Find named subfunction in functin table:
-		fcn = PsychGetProjectFunction(subfname);
-		if (fcn) {
-			// This will trigger the subfunction 'fcn' to execute its PsychGiveHelp() method, then
-			// return. PsychGiveHelp() will return the help text to Runtime as cell array of strings,
-			// instead of printing to runtimes console:
-			PsychSetGiveHelp();
-			PsychOneShotReturnHelp();
-			(*fcn)();
-			PsychClearGiveHelp();
-		}
-	}
-	else {
-		// Generate a cell array to return
-		PsychAllocOutCellVector(1, FALSE, numFunctionsREGISTER,  &cellVector);
-		for(i=0; i < numFunctionsREGISTER; i++) PsychSetCellVectorStringElement(i, functionTableREGISTER[i].name, cellVector);
-	}
-	        
+ //   //PsychGenericScriptType		*cellVector;
+	//PsychFunctionPtr			fcn;
+	//
+ //   //all subfunctions should have these two lines.  
+ //   PsychPushHelp(useString, synopsisString, seeAlsoString);
+ //   if(PsychIsGiveHelp()){PsychGiveHelp();return(PsychError_none);};
+ //   
+ //   // Check for valid number of arguments
+ //   PsychErrorExit(PsychCapNumInputArgs(2));   	
+ //   PsychErrorExit(PsychCapNumOutputArgs(1)); 
+ //   
+	////PsychCopyInIntegerArg(1, FALSE, &i);
+	//
+	//subfname = NULL;
+	//PsychAllocInCharArg(2, FALSE, &subfname);
+	//
+	//if (subfname) {
+	//	// Find named subfunction in functin table:
+	//	fcn = PsychGetProjectFunction(subfname);
+	//	if (fcn) {
+	//		// This will trigger the subfunction 'fcn' to execute its PsychGiveHelp() method, then
+	//		// return. PsychGiveHelp() will return the help text to Runtime as cell array of strings,
+	//		// instead of printing to runtimes console:
+	//		PsychSetGiveHelp();
+	//		PsychOneShotReturnHelp();
+	//		(*fcn)();
+	//		PsychClearGiveHelp();
+	//	}
+	//}
+	//else {
+	//	// Generate a cell array to return
+	//	//PsychAllocOutCellVector(1, FALSE, numFunctionsREGISTER,  &cellVector);
+	//	//for(i=0; i < numFunctionsREGISTER; i++) PsychSetCellVectorStringElement(i, functionTableREGISTER[i].name, cellVector);
+	//}
+	//        
     return(PsychError_none);
 }
 
@@ -147,7 +147,7 @@ PsychError PsychRegister(char *name,  PsychFunctionPtr func)
 		return(PsychError_longString);
 	strcpy(functionTableREGISTER[numFunctionsREGISTER].name, name);
 	++numFunctionsREGISTER;
-	PsychEnableSubfunctions();
+	//PsychEnableSubfunctions();
 	return(PsychError_none);
 }
 

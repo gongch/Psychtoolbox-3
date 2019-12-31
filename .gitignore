@@ -32,3 +32,7 @@ managementtools/ptbregistration*
 *.VC.db
 *.suo
 *.sqlite
+/PsychSourceGL/Projects/Windows/Screen/Debug
+/PsychSourceGL/Source/Windows/Screen/PsychScreen/.vs/PsychScreen/v16
+/PsychSourceGL/Source/Windows/Screen/PsychScreen/Debug
+/PsychSourceGL/Source/Windows/Screen/PsychScreen/PsychScreen/Debug
