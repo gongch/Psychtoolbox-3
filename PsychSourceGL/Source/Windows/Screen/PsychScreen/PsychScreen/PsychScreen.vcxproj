@@ -23,7 +23,7 @@
     <ProjectGuid>{5C25EBA8-DEAD-4EB1-9DDF-DDDC39209A7C}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>PsychScreen</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -31,6 +31,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
+    <SpectreMitigation>false</SpectreMitigation>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -38,6 +39,7 @@
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <SpectreMitigation>false</SpectreMitigation>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -91,7 +93,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\Source\GitHub\Psychtoolbox-3\PsychSourceGL\Source\Windows\Screen;D:\Source\GitHub\Psychtoolbox-3\PsychSourceGL\Source\Common\Screen;D:\Source\GitHub\Psychtoolbox-3\PsychSourceGL\Source\Common\Base;D:\Source\GitHub\Psychtoolbox-3\PsychSourceGL\Source\Windows\Base</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\..\Source\Windows\Screen;..\..\..\..\..\Source\Common\Screen;..\..\..\..\..\Source\Common\Base;..\..\..\..\..\Source\Windows\Base</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
