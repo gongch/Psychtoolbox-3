@@ -87,9 +87,6 @@
     <ClCompile Include="..\..\..\..\Common\Screen\PsychImagingPipelineSupport.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\Common\Base\PsychMemory.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\Common\Screen\SCREENSelectStereoDrawBuffer.c">
       <Filter>源文件</Filter>
     </ClCompile>
