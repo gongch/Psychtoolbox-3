@@ -60,9 +60,6 @@
     <ClCompile Include="..\..\..\..\Common\Base\PsychVersioning.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\Common\Screen\PsychMovieSupport.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\Common\Screen\PsychTextureSupport.c">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -96,12 +93,6 @@
     <ClCompile Include="..\..\..\..\Common\Screen\SCREENCloseAll.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\Common\Screen\PsychMovieWritingSupportGStreamer.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\Common\Screen\PsychVideoCaptureSupport.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\Common\Screen\SCREENFlip.c">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -109,6 +100,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\Common\Screen\SCREENFillRect.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Common\Base\PsychMemory.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

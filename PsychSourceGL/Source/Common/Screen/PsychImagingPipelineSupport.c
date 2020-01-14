@@ -482,7 +482,7 @@ void PsychInitializeImagingPipeline(PsychWindowRecordType *windowRecord, int ima
     }
 
     // Another child protection:
-    if ((windowRecord->windowType != kPsychDoubleBufferOnscreen) || PsychPrefStateGet_EmulateOldPTB()>0) {
+    if ((windowRecord->windowType != kPsychDoubleBufferOnscreen) ) {
         PsychErrorExitMsg(PsychError_user, "Imaging Pipeline setup: Sorry, imaging pipeline only supported on double buffered onscreen windows and if not in emulation mode for old PTB-2.\n");
     }
 
@@ -3002,8 +3002,6 @@ void PsychNormalizeTextureOrientation(PsychWindowRecordType *sourceRecord)
         // At this point the color attachment of the sourceRecords FBO contains the properly oriented texture.
         // Delete the old texture, attach the FBO texture as new one:
 
-        // Make sure movie textures are recycled instead of freed if possible:
-        PsychFreeMovieTexture(sourceRecord);
 
         // Really free the texture if needed:
         if (sourceRecord->textureNumber) {

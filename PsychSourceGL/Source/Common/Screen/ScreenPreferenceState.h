@@ -75,9 +75,6 @@ void PsychPrefStateSet_VisualDebugLevel(int level);
 int PsychPrefStateGet_ConserveVRAM(void);
 void PsychPrefStateSet_ConserveVRAM(int level);
 
-psych_bool PsychPrefStateGet_EmulateOldPTB(void);
-void PsychPrefStateSet_EmulateOldPTB(psych_bool level);
-
 // 3D graphics rendering support:
 int PsychPrefStateGet_3DGfx(void);
 void PsychPrefStateSet_3DGfx(int level);

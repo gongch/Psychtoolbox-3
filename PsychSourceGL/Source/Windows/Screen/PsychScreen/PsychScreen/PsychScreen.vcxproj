@@ -166,11 +166,8 @@
     <ClCompile Include="..\..\..\..\Common\Screen\PsychGLGlue.c" />
     <ClCompile Include="..\..\..\..\Common\Screen\PsychGraphicsHardwareHALSupport.c" />
     <ClCompile Include="..\..\..\..\Common\Screen\PsychImagingPipelineSupport.c" />
-    <ClCompile Include="..\..\..\..\Common\Screen\PsychMovieSupport.c" />
-    <ClCompile Include="..\..\..\..\Common\Screen\PsychMovieWritingSupportGStreamer.c" />
     <ClCompile Include="..\..\..\..\Common\Screen\PsychRects.c" />
     <ClCompile Include="..\..\..\..\Common\Screen\PsychTextureSupport.c" />
-    <ClCompile Include="..\..\..\..\Common\Screen\PsychVideoCaptureSupport.c" />
     <ClCompile Include="..\..\..\..\Common\Screen\PsychWindowSupport.c" />
     <ClCompile Include="..\..\..\..\Common\Screen\ScreenArguments.c" />
     <ClCompile Include="..\..\..\..\Common\Screen\SCREENCloseAll.c" />

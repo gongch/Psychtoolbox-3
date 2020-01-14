@@ -80,11 +80,6 @@ void ScreenCloseAllWindows(void)
     // Check for stale texture ressources:
     PsychRessourceCheckAndReminder(TRUE);
 
-    // Shutdown multi-media subsystems if active:
-    PsychExitMovieWriting();
-    PsychExitMovies();
-    PsychExitVideoCapture();
-
     // Close the windows: We do it reverse (descending) order so textures get closed
     // before the onscreen windows. In theory this shouldn't matter, but in practice,
     // more stress on the PsychCloseWindow() path. If we have bugs there, chances are

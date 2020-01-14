@@ -317,8 +317,6 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
 
     (void) dummychar;
 
-    // OS-9 emulation? If so, then we only work in double-buffer mode:
-    if (PsychPrefStateGet_EmulateOldPTB()) numBuffers = 2;
 
     // Child protection: We need 2 AUX buffers for compressed stereo.
     if ((conserveVRAM & kPsychDisableAUXBuffers) && (stereomode==kPsychCompressedTLBRStereo || stereomode==kPsychCompressedTRBLStereo)) {
@@ -342,12 +340,6 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
 			printf("PTB-INFO: Most parts of the Psychtoolbox distribution are licensed to you under terms of the MIT License, with\n");
 			printf("PTB-INFO: some restrictions. See file 'License.txt' in the Psychtoolbox root folder for the exact licensing conditions.\n\n");
 		}
-
-        if (PsychPrefStateGet_EmulateOldPTB() && PsychPrefStateGet_Verbosity()>1) {
-            printf("PTB-INFO: Psychtoolbox is running in compatibility mode to old MacOS-9 PTB. This is an experimental feature with\n");
-            printf("PTB-INFO: limited support and possibly significant bugs hidden in it! Use with great caution and avoid if you can!\n");
-            printf("PTB-INFO: Currently implemented: Screen('OpenOffscreenWindow'), Screen('CopyWindow') and Screen('WaitBlanking')\n");
-        }
     }
 
     // Add all passed-in specialFlags to windows specialflags:
@@ -1120,9 +1112,6 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
                     // Update global maximum with current sample:
                     if (maxline > VBL_Endline) VBL_Endline = maxline;
                 }
-
-                // Setup reasonable timestamp for time of last vbl in emulation mode:
-                if (PsychPrefStateGet_EmulateOldPTB()) (*windowRecord)->time_at_last_vbl = tnew;
             }
 
             // Switch to previous scheduling mode after timing tests:
@@ -1260,7 +1249,6 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
             // We don't have beamposition queries on this system:
             ifi_beamestimate = 0;
             // Setup fake-timestamp for time of last vbl in emulation mode:
-            if (PsychPrefStateGet_EmulateOldPTB()) PsychGetAdjustedPrecisionTimerSeconds(&((*windowRecord)->time_at_last_vbl));
         }
 
         // End of beamposition measurements and validation.
@@ -1684,11 +1672,6 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
     // Ring the visual bell for one second if anything demands this:
     if (ringTheBell>=0 && !skip_synctests) PsychVisualBell((*windowRecord), 1, ringTheBell);
 
-    if (PsychPrefStateGet_EmulateOldPTB()) {
-        // Perform all drawing and reading in the front-buffer for OS-9 emulation mode:
-        glReadBuffer(GL_FRONT);
-        glDrawBuffer(GL_FRONT);
-    }
 
     // Check if >= 10 bpc native framebuffer support is requested, or if 10 bit LUT bypass
     // is requested. In both cases we execute PsychEnableNative10BitFramebuffer(), which
@@ -1938,7 +1921,7 @@ void PsychCloseWindow(PsychWindowRecordType *windowRecord)
 */
 void PsychFlushGL(PsychWindowRecordType *windowRecord)
 {
-    if(PsychIsOnscreenWindow(windowRecord) && PsychPrefStateGet_EmulateOldPTB()) glFinish();
+    
 }
 
 /* PsychSetupShutterGoggles()
@@ -5752,7 +5735,6 @@ void PsychSetDrawingTarget(PsychWindowRecordType *windowRecord)
 {
     static unsigned int    recursionLevel = 0;
     PsychWindowRecordType *parentRecord;
-    psych_bool EmulateOldPTB = PsychPrefStateGet_EmulateOldPTB();
     psych_bool oldStyle = (PsychPrefStateGet_ConserveVRAM() & kPsychUseOldStyleAsyncFlips) ? TRUE : FALSE;
 
     // Are we called from the main interpreter thread? If not, then we return
@@ -5978,28 +5960,9 @@ void PsychSetDrawingTarget(PsychWindowRecordType *windowRecord)
                     // There is a bound render target in non-imaging mode: Any backups of its current backbuffer to some
                     // texture backing store needed?
                     if (currentRendertarget->windowType == kPsychTexture || (windowRecord && (windowRecord->windowType == kPsychTexture))) {
-                        // Ok we transition from- or to a texture. We need to backup the old content:
-                        if (EmulateOldPTB) {
-                            // OS-9 emulation: frontbuffer = framebuffer, backbuffer = offscreen scratchpad
-                            if (PsychIsOnscreenWindow(currentRendertarget)) {
-                                // Need to read the content of the frontbuffer to create the backup copy:
-                                glReadBuffer(GL_FRONT);
-                                glDrawBuffer(GL_FRONT);
-                            }
-                            else {
-                                // Need to read the content of the backbuffer (scratch buffer for offscreen windows) to create the backup copy:
-                                glReadBuffer(GL_BACK);
-                                glDrawBuffer(GL_BACK);
-                            }
-                        }
 
-                        // In emulation mode for old PTB, we only need to back up offscreen windows, as they
-                        // share the backbuffer as scratchpad. Each onscreen window has its own frontbuffer, so
-                        // it will be unaffected by the switch --> No need to backup & restore.
-                        if (!EmulateOldPTB || (EmulateOldPTB && !PsychIsOnscreenWindow(currentRendertarget))) {
-                            // Call helper routine defined below:
-                            PsychBackupFramebufferToBackingTexture(currentRendertarget);
-                        } // Backbuffer -> Texture backup code.
+                        // Call helper routine defined below:
+                        PsychBackupFramebufferToBackingTexture(currentRendertarget);
                     } // Transition from- or to a texture.
                 } // currentRenderTarget non-NULL.
 
@@ -6013,50 +5976,33 @@ void PsychSetDrawingTarget(PsychWindowRecordType *windowRecord)
 
                     // We only blit when a texture was involved, either as previous rendertarget or as new rendertarget:
                     if (windowRecord->windowType == kPsychTexture || (currentRendertarget && currentRendertarget->windowType == kPsychTexture)) {
-                        // OS-9 emulation: frontbuffer = framebuffer, backbuffer = offscreen scratchpad
-                        if (EmulateOldPTB) {
-                            // OS-9 emulation: frontbuffer = framebuffer, backbuffer = offscreen scratchpad
-                            if (PsychIsOnscreenWindow(windowRecord)) {
-                                // Need to write the content to the frontbuffer to restore from the backup copy:
-                                glReadBuffer(GL_FRONT);
-                                glDrawBuffer(GL_FRONT);
-                            }
-                            else {
-                                // Need to write the content to the backbuffer (scratch buffer for offscreen windows) to restore from the backup copy:
-                                glReadBuffer(GL_BACK);
-                                glDrawBuffer(GL_BACK);
-                            }
-                        }
-
                         // In emulation mode for old PTB, we only need to restore offscreen windows, as they
                         // share the backbuffer as scratchpad. Each onscreen window has its own frontbuffer, so
                         // it will be unaffected by the switch --> No need to backup & restore.
-                        if (!EmulateOldPTB || (EmulateOldPTB && !PsychIsOnscreenWindow(windowRecord))) {
-                            // Setup viewport and projections to fit new dimensions of new rendertarget:
-                            PsychSetupView(windowRecord, TRUE);
-                            glPushMatrix();
-                            glLoadIdentity();
+                        // Setup viewport and projections to fit new dimensions of new rendertarget:
+                        PsychSetupView(windowRecord, TRUE);
+                        glPushMatrix();
+                        glLoadIdentity();
 
-                            // Disable any shaders:
-                            PsychSetShader(windowRecord, 0);
+                        // Disable any shaders:
+                        PsychSetShader(windowRecord, 0);
 
-                            // Now we need to blit the new rendertargets texture into the framebuffer. We need to make
-                            // sure that alpha-blending is disabled during this blit operation:
-                            if (glIsEnabled(GL_BLEND)) {
-                                // Alpha blending enabled. Disable it, blit texture, reenable it:
-                                glDisable(GL_BLEND);
-                                PsychBlitTextureToDisplay(windowRecord, windowRecord, windowRecord->rect, windowRecord->rect, 0, 0, 1);
-                                glEnable(GL_BLEND);
-                            }
-                            else {
-                                // Alpha blending not enabled. Just blit it:
-                                PsychBlitTextureToDisplay(windowRecord, windowRecord, windowRecord->rect, windowRecord->rect, 0, 0, 1);
-                            }
-
-                            glPopMatrix();
-
-                            // Ok, the framebuffer has been initialized with the content of our texture.
+                        // Now we need to blit the new rendertargets texture into the framebuffer. We need to make
+                        // sure that alpha-blending is disabled during this blit operation:
+                        if (glIsEnabled(GL_BLEND)) {
+                            // Alpha blending enabled. Disable it, blit texture, reenable it:
+                            glDisable(GL_BLEND);
+                            PsychBlitTextureToDisplay(windowRecord, windowRecord, windowRecord->rect, windowRecord->rect, 0, 0, 1);
+                            glEnable(GL_BLEND);
                         }
+                        else {
+                            // Alpha blending not enabled. Just blit it:
+                            PsychBlitTextureToDisplay(windowRecord, windowRecord, windowRecord->rect, windowRecord->rect, 0, 0, 1);
+                        }
+
+                        glPopMatrix();
+
+                        // Ok, the framebuffer has been initialized with the content of our texture.
                     }    // End of from- to- texture/offscreen window transition...
                 }    // End of setup of a real new rendertarget windowRecord...
 
@@ -6288,20 +6234,6 @@ psych_bool PsychIsUserspaceRendering(void)
 
 int PsychRessourceCheckAndReminder(psych_bool displayMessage) {
     int i,j = 0;
-
-    // Check for open movies:
-    j = PsychGetMovieCount();
-    if (j > 0) {
-        if (displayMessage && PsychPrefStateGet_Verbosity()>2) {
-            printf("\n\nPTB-INFO: There are still %i movies open. Screen('CloseAll') will auto-close them.\n", j);
-            printf("PTB-INFO: This may be fine for studies where you only use a single movie, but a large number of open\n");
-            printf("PTB-INFO: movies can be an indication that you forgot to dispose no longer needed movie objects\n");
-            printf("PTB-INFO: via a proper call to Screen('CloseMovie', moviePtr); , e.g., at the end of each trial. These\n");
-            printf("PTB-INFO: stale movies linger around and can consume significant memory and cpu ressources, causing\n");
-            printf("PTB-INFO: degraded performance, timing trouble and ultimately out of memory or out of ressource\n");
-            printf("PTB-INFO: conditions or even crashes of Matlab/Octave (in rare cases). Please check your code.\n\n");
-        }
-    }
 
     // Check for open textures and proxies at close time. Might be indicative of missing
     // close calls for releasing texture -- ie. leaked memory:

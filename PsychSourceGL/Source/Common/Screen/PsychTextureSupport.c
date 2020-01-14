@@ -627,7 +627,6 @@ void PsychFreeTextureForWindowRecord(PsychWindowRecordType *win)
 
         // Call special texture release routine for Movie textures: This routine will
         // check if 'win' is a movie texture and perform the necessary cleanup work, if so:
-        PsychFreeMovieTexture(win);
 
         // If we use client-storage textures, we need to wait for completion of texture operations on the
         // to-be-released client texture buffer before deleting it and freeing the RAM backing buffers. Waiting for

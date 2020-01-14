@@ -154,7 +154,6 @@ PsychError SCREENOpenWindow(void)
     PsychVRRStyleType       vrrStyleHint;
     double                  vrrMinDuration;
     double                  vrrMaxDuration;
-    psych_bool EmulateOldPTB = PsychPrefStateGet_EmulateOldPTB();
 
     //all sub functions should have these two lines
     PsychPushHelp(useString, synopsisString, seeAlsoString);
@@ -271,17 +270,14 @@ PsychError SCREENOpenWindow(void)
     stereomode=0;
     //PsychCopyInIntegerArg(6,FALSE,&stereomode);
     if(stereomode < 0 || stereomode > 10) PsychErrorExitMsg(PsychError_user, "Invalid stereomode provided (Valid between 0 and 10).");
-	if (stereomode!=0 && EmulateOldPTB) PsychErrorExitMsg(PsychError_user, "Sorry, stereo display functions are not supported in OS-9 PTB emulation mode.");
 
     multiSample=0;
     //PsychCopyInIntegerArg(7,FALSE,&multiSample);
     if(multiSample < 0) PsychErrorExitMsg(PsychError_user, "Invalid multisample value provided (Valid are positive numbers >= 0).");
-    if (multiSample!=0 && EmulateOldPTB) PsychErrorExitMsg(PsychError_user, "Sorry, anti-aliasing functions are not supported in OS-9 PTB emulation mode.");
 
 	imagingmode=0;
     //PsychCopyInIntegerArg(8,FALSE,&imagingmode);
     if(imagingmode < 0) PsychErrorExitMsg(PsychError_user, "Invalid imaging mode provided (See 'help PsychImagingMode' for usage info).");
-	if (imagingmode!=0 && EmulateOldPTB) PsychErrorExitMsg(PsychError_user, "Sorry, imaging pipeline functions are not supported in OS-9 PTB emulation mode.");
 	
 	specialflags=0;
     //PsychCopyInIntegerArg(9,FALSE,&specialflags);
@@ -355,13 +351,6 @@ PsychError SCREENOpenWindow(void)
     //if (PSYCH_DEBUG == PSYCH_ON) printf("Entering PsychOpenOnscreenWindow\n");
     PsychCopyDepthStruct(&(screenSettings.depth), &useDepth);
 
-    // Make sure nothing slips through in PTB-2 emulation mode:
-    if (EmulateOldPTB) {
-        stereomode = 0;
-        imagingmode = 0;
-        multiSample = 0;
-        sharedContextWindow = NULL;
-    }
 
     // Create the onscreen window and perform initialization of everything except
     // imaging pipeline and a few other special quirks. If sharedContextWindow is non-NULL,
@@ -413,7 +402,7 @@ PsychError SCREENOpenWindow(void)
     // actively opt-out of it, we auto-enable use of FBO backed fast offscreen windows. We don't auto-enable
     // the full pipeline for stereoscopic display modes, but we print some recommendations to the user to
     // consider enabling the full pipeline for stereo display:
-    if ((windowRecord->gfxcaps & kPsychGfxCapFBO) && !(PsychPrefStateGet_ConserveVRAM() & kPsychDontAutoEnableImagingPipeline) && !EmulateOldPTB) {
+    if ((windowRecord->gfxcaps & kPsychGfxCapFBO) && !(PsychPrefStateGet_ConserveVRAM() & kPsychDontAutoEnableImagingPipeline) ) {
         // Support for basic use of the PTB imaging pipeline and/or for fast offscreen windows
         // is available - a GPU + driver combo with support for OpenGL framebuffer objects with
         // at least RGBA8 format and rectangle rendertargets.

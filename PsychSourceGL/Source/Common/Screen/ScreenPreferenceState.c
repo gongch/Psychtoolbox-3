@@ -350,27 +350,6 @@ void PsychPrefStateSet_ConserveVRAM(int level)
     screenConserveVRAM = level;
 }
 
-// If EmulateOldPTB is set to true (default is false) at startup, then we try to
-// behave like the old OS-9 and Windows Psychtoolboxes. We don't use double-buffering
-// and SCREEN('Flip') for stimulus onset- offset and timing, but good'ol
-// Screen('WaitBlanking') in conjunction with drawing commands that execute
-// immediately on invocation (glFinish()) and a single-buffered onscreen window.
-// Offscreen windows are also available in a compatible way.
-//
-// Note: Internally we still use a double-buffered context, but the front buffer is
-// the drawing/reading target for all commands and the backbuffer is used as a
-// scratchpad buffer for Offscreen window handling.
-psych_bool PsychPrefStateGet_EmulateOldPTB(void)
-{
-    return(EmulateOldPTB);
-}
-
-void PsychPrefStateSet_EmulateOldPTB(psych_bool level)
-{
-    EmulateOldPTB = level;
-    // When emulation for old PTB gets enabled, we change the default for
-    // text baseline to 'on' -- The behaviour of old PTB.
-}
 
 // Enable switch for 3D graphics support. If set to true, PTB will allocate stencil-
 // and depth-buffers additionally to the AUX and Colorbuffers and perform additional
