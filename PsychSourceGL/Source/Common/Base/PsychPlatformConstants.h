@@ -49,16 +49,9 @@
 //each block is a list of mutually exclusive options.  
 
 //define the platform constant values for PSYCH_SYSTEM in PsychPlatform.h
-#define PSYCH_LINUX 		1
-#define PSYCH_OS9		2
-#define PSYCH_OSX		3
-#define PSYCH_IRIX		4
 #define PSYCH_WINDOWS		5 
 
 //define the interface language constants for PSYCH_LANGUAGE in PsychPlatform.h
-#define PSYCH_MATLAB 		1
-#define PSYCH_OCTAVE		2
-#define PSYCH_PYTHON		4
 #define PSYCH_C			8
 
 //define on and off constants for PSYCH_DEBUG in PsychPlatform.h .  
@@ -73,11 +66,3 @@
 #define PSYCH_CGL_WINDOW	2
 
  
-// Is this a build for GNU/Octave? If the special compiler flag PTBOCTAVE
-// is defined, then it is the octave build and we set the language already
-// here, at the lowest layer: Otherwise the PsychPlatform.h file will select
-// an appropriate language.
-#ifdef PTBOCTAVE
-#define PSYCH_LANGUAGE          PSYCH_OCTAVE
-#endif
-

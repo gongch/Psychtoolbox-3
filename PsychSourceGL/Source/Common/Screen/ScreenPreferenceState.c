@@ -41,17 +41,6 @@
 // Default video capture engine is GStreamer (3):
 #define PTB_DEFAULTVIDCAPENGINE 3
 
-#if PSYCH_SYSTEM == PSYCH_LINUX
-#define INITIAL_DEFAULT_FONT_NAME       "Arial"
-#define INITIAL_DEFAULT_FONT_SIZE       24
-#define INITIAL_DEFAULT_FONT_STYLE      0
-#endif
-
-#if PSYCH_SYSTEM == PSYCH_OSX
-#define INITIAL_DEFAULT_FONT_NAME       "Arial"
-#define INITIAL_DEFAULT_FONT_SIZE       24
-#define INITIAL_DEFAULT_FONT_STYLE      0
-#endif
 
 #if PSYCH_SYSTEM == PSYCH_WINDOWS
 #define INITIAL_DEFAULT_FONT_NAME       "Arial"
@@ -129,7 +118,7 @@ void PrepareScreenPreferences(void)
     screenConserveVRAM=0;
     EmulateOldPTB=FALSE;
     Enable_3d_gfx=0;
-    screenVBLTimestampingMode = (PSYCH_SYSTEM == PSYCH_LINUX) ? 4 : 0;
+    screenVBLTimestampingMode =  0;
     screenVBLEndlineOverride=-1;
     screenVBLEndlineMaxFactor=1.25;
     videoCaptureEngineId=PTB_DEFAULTVIDCAPENGINE;
@@ -381,9 +370,6 @@ void PsychPrefStateSet_EmulateOldPTB(psych_bool level)
     EmulateOldPTB = level;
     // When emulation for old PTB gets enabled, we change the default for
     // text baseline to 'on' -- The behaviour of old PTB.
-    #if PSYCH_SYSTEM == PSYCH_OSX
-        if (EmulateOldPTB>0) defaultTextYPositionIsBaseline=1;
-    #endif
 }
 
 // Enable switch for 3D graphics support. If set to true, PTB will allocate stencil-

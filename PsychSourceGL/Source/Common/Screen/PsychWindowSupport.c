@@ -50,38 +50,6 @@
 #define WAFFLE_PLATFORM_WAYLAND 0x0014
 #endif
 
-#if PSYCH_SYSTEM == PSYCH_LINUX
-#include <errno.h>
-// utsname for uname() so we can find out on which kernel we're running:
-#include <sys/utsname.h>
-#endif
-
-// Support for nvstusb library requested to drive Nvidia NVision stereo shutter goggles?
-#ifdef PTB_USE_NVSTUSB
-
-#if PSYCH_SYSTEM != PSYCH_WINDOWS
-// Include for dynamic loading of external nvstusb library plugin:
-#include <dlfcn.h>
-#endif
-
-#include "nvstusb.h"
-typedef struct nvstusb_context* (*NVSTUSB_INIT_PROC)(char const * fw);
-typedef void (*NVSTUSB_DEINIT_PROC)(struct nvstusb_context *ctx);
-typedef void (*NVSTUSB_SET_RATE_PROC)(struct nvstusb_context *ctx, float rate);
-typedef void (*NVSTUSB_SWAP_PROC)(struct nvstusb_context *ctx, enum nvstusb_eye eye, void (*swapfunc)());
-typedef void (*NVSTUSB_GET_KEYS_PROC)(struct nvstusb_context *ctx, struct nvstusb_keys *keys);
-typedef void (*NVSTUSB_INVERT_EYES_PROC)(struct nvstusb_context *ctx);
-
-NVSTUSB_INIT_PROC Nvstusb_init_proc = NULL;
-NVSTUSB_DEINIT_PROC Nvstusb_deinit_proc = NULL;
-NVSTUSB_SET_RATE_PROC Nvstusb_set_rate_proc = NULL;
-NVSTUSB_SWAP_PROC Nvstusb_swap_proc = NULL;
-NVSTUSB_GET_KEYS_PROC Nvstusb_get_keys_proc = NULL;
-NVSTUSB_INVERT_EYES_PROC Nvstusb_invert_eyes_proc = NULL;
-
-static void* nvstusb_plugin = NULL;
-static struct nvstusb_context* nvstusb_goggles = NULL;
-#endif
 static double nvsttriggerdelay = 0;
 
 #if PSYCH_SYSTEM != PSYCH_WINDOWS
@@ -184,13 +152,6 @@ static void PsychDrawSplash(PsychWindowRecordType* windowRecord)
 {
     int logo_x, logo_y;
     int visual_debuglevel = PsychPrefStateGet_VisualDebugLevel();
-
-    // Use alternate texture-mapping based splash drawing on OSX, on the hunch that Apple
-    // might have screwed up their glDrawPixels() implementation so badly on some gpu's that
-    // it causes lots of sync failures, especially on modern iMac's. Unclear if this is the
-    // case, but let's see what user testing will show:
-    if (PSYCH_SYSTEM == PSYCH_OSX)
-        return;
 
     // See call below for explanation: This workaround is also needed on VideoCore-4 + DRI3/Present, so maybe the assumption
     // that this is an intel-ddx sna bug is wrong, and it is actually a Mesa DRI3/Present bug in drawable invalidation/revalidation?
@@ -441,11 +402,10 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
 
             // Repeat search if this ain't an onscreen window, or on Linux, if it is located on a
             // different X-Screen aka screenNumber, because windows can't share resources across X-Screens:
-        } while (!PsychIsOnscreenWindow((*windowRecord)->slaveWindow) || ((PSYCH_SYSTEM == PSYCH_LINUX) && ((*windowRecord)->slaveWindow->screenNumber != screenSettings->screenNumber)));
+        } while (!PsychIsOnscreenWindow((*windowRecord)->slaveWindow) );
 
         // Sanity check - Do conditions hold for valid sharing window?
-        if (!((*windowRecord)->slaveWindow) || !PsychIsOnscreenWindow((*windowRecord)->slaveWindow) ||
-            ((PSYCH_SYSTEM == PSYCH_LINUX) && ((*windowRecord)->slaveWindow->screenNumber != screenSettings->screenNumber))) {
+        if (!((*windowRecord)->slaveWindow) || !PsychIsOnscreenWindow((*windowRecord)->slaveWindow) ) {
             // Failed: Invalidate slaveWindow, so no context sharing takes place - It would fail anyway in lower-level layer:
             (*windowRecord)->slaveWindow = NULL;
             if (PsychPrefStateGet_Verbosity()>3) printf("PTB-INFO: This onscreen window could not find a peer window for sharing of OpenGL context ressources.\n");
@@ -512,21 +472,6 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
             }
         }
 
-        if (PSYCH_SYSTEM == PSYCH_LINUX) {
-            if (strstr((char*) glGetString(GL_RENDERER), "Mesa X11") && strstr((char*) glGetString(GL_VENDOR), "Brian Paul")) {
-                softwareOpenGL = TRUE;
-
-                printf("\n\n\n\n");
-                printf("PTB-WARNING: Seems that a Mesa OpenGL software renderer is active! This will likely cause miserable\n");
-                printf("PTB-WARNING: performance, lack of functionality and severe timing and synchronization problems.\n");
-                printf("PTB-WARNING: Most likely you are running Psychtoolbox on a Matlab version 8.4 (R2014b) or later and\n");
-                printf("PTB-WARNING: Matlab is causing this problem by overriding your operating systems OpenGL library with\n");
-                printf("PTB-WARNING: its own outdated software library. Please run the setup script PsychLinuxConfiguration()\n");
-                printf("PTB-WARNING: now from your Matlab command window and then quit and restart Matlab to fix this problem.\n");
-                printf("\n\n");
-            }
-        }
-
         // On a software OpenGL implementation, only allow to continue if kPsychUseSoftwareRenderer flag is set:
         if (softwareOpenGL && ((PsychPrefStateGet_ConserveVRAM() & kPsychUseSoftwareRenderer) == 0)) {
             printf("PTB-WARNING: Actually, it is pointless to continue with the software renderer, as that will cause more trouble than good.\n");
@@ -551,65 +496,6 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
         glGetIntegerv(GL_RED_BITS, &bpc);
 
         // Support for kernel driver available? Only on Linux:
-#if PSYCH_SYSTEM == PSYCH_LINUX
-        if (bpc >= (*windowRecord)->depth / 3) {
-            // Linux, and the OS claims it runs at at least requested bpc. Good, take it at face value.
-            printf("PTB-INFO: Linux native %i bit per color framebuffer requested, and the OS claims it is working fine. Good.\n", bpc);
-        }
-        else {
-            // No native requested bpc support. Only support our homegrown method with PTB kernel driver on ATI/AMD hardware:
-            printf("PTB-INFO: Native %i bit per color framebuffer requested, but the OS doesn't allow it. It only provides %i bpc.\n", (*windowRecord)->depth / 3, bpc);
-
-            // We only support the 48 bit color depth / 16 bpc hack on Linux + X11, not on OSX et al.:
-            if ((PSYCH_SYSTEM != PSYCH_LINUX) && ((*windowRecord)->depth == 48)) {
-                printf("\nPTB-ERROR: Your script requested a %i bpp, %i bpc framebuffer, but i can't provide this for you, because\n", (*windowRecord)->depth, (*windowRecord)->depth / 3);
-                printf("PTB-ERROR: my own 16 bpc setup code only works on Linux with a properly setup X11/GLX display backend.\n");
-                PsychOSCloseWindow(*windowRecord);
-                FreeWindowRecordFromPntr(*windowRecord);
-                return(FALSE);
-            }
-
-            printf("PTB-INFO: Will now try to use our own high bit depth setup code as an alternative approach to fullfill your needs.\n");
-            gpuMaintype = kPsychUnknown;
-            if (!PsychOSIsKernelDriverAvailable(screenSettings->screenNumber) ||
-                !PsychGetGPUSpecs(screenSettings->screenNumber, &gpuMaintype, &gpuMinortype, NULL, NULL) ||
-                (gpuMaintype != kPsychRadeon) || (gpuMinortype > 0xffff) || (PsychGetScreenDepthValue(screenSettings->screenNumber) != 24)) {
-                printf("\nPTB-ERROR: Your script requested a %i bpp, %i bpc framebuffer, but i can't provide this for you, because\n", (*windowRecord)->depth, (*windowRecord)->depth / 3);
-                if ((gpuMaintype != kPsychRadeon) || (gpuMinortype > 0xffff)) {
-                    printf("PTB-ERROR: this functionality is not supported on your model of graphics card. Only AMD/ATI GPU's of the\n");
-                    printf("PTB-ERROR: Radeon X1000 series, and Radeon HD-2000 series and later models, and corresponding FireGL/FirePro\n");
-                    printf("PTB-ERROR: cards are supported. This covers basically all AMD graphics cards since about the year 2007.\n");
-                    printf("PTB-ERROR: NVidia graphics cards since the GeForce-8000 series and corresponding Quadro cards can be setup\n");
-                    printf("PTB-ERROR: for 10 bpc framebuffer support by specifying a 'DefaultDepth' setting of 30 bit in the xorg.conf file.\n");
-                    printf("PTB-ERROR: The latest Intel graphics cards may be able to achieve 10 bpc with 'DefaultDepth' 30 setting if your\n");
-                    printf("PTB-ERROR: graphics driver is recent enough, however this hasn't been actively tested on Intel cards so far.\n\n");
-                }
-                else if (!PsychOSIsKernelDriverAvailable(screenSettings->screenNumber)) {
-                    printf("PTB-ERROR: Linux low-level MMIO access by Psychtoolbox is disabled or not permitted on your system in this session.\n");
-                    printf("PTB-ERROR: On Linux you must either configure your system by executing the script 'PsychLinuxConfiguration' once,\n");
-                    printf("PTB-ERROR: or start Octave or Matlab as root, ie. system administrator or via sudo command for this to work.\n\n");
-                }
-                else if (PsychGetScreenDepthValue(screenSettings->screenNumber) != 24) {
-                    printf("PTB-ERROR: your display is not set to 24 bit 'DefaultDepth' color depth, but to %i bit color depth in xorg.conf.\n\n",
-                           (int) PsychGetScreenDepthValue(screenSettings->screenNumber));
-                }
-
-                PsychOSCloseWindow(*windowRecord);
-                FreeWindowRecordFromPntr(*windowRecord);
-                return(FALSE);
-            }
-
-            // Basic support seems to be there, set the request flag.
-            (*windowRecord)->specialflags|= kPsychNative10bpcFBActive;
-        }
-
-        if (PsychPrefStateGet_ConserveVRAM() & kPsychEnforce10BitFramebufferHack) {
-            printf("PTB-INFO: Override: Will try to enable %i bpc framebuffer mode regardless if i think it is needed/sensible or not.\n", (*windowRecord)->depth / 3);
-            printf("PTB-INFO: Override: Doing so because you set the kPsychEnforce10BitFramebufferHack flag in Screen('Preference','ConserveVRAM').\n");
-            printf("PTB-INFO: Override: Cross your fingers, this may end badly if your GPU or setup is not one of the supported models and configurations...\n");
-            (*windowRecord)->specialflags|= kPsychNative10bpcFBActive;
-        }
-#else
         // Make compiler happy:
         (void) gpuMaintype;
         (void) gpuMinortype;
@@ -617,24 +503,7 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
         // Not supported by our own code and kernel driver (we don't have such a driver for Windows), but some recent 2008
         // series AMD FireGL and NVidia Quadro cards at least provide the option to enable this natively - although it didn't
         // work properly in our tests around the year 2009.
-        if ((PSYCH_SYSTEM == PSYCH_OSX) && (bpc >= (*windowRecord)->depth / 3)) {
-            // OSX and the OS claims it runs at at least requested bpc. Good, take
-            // it at face value. This should work on OSX >= 10.11.2 at least for
-            // some graphics cards, as far as the framebuffer is concerned.
-            // The actual output bit depth is totally unverified, but supposed to
-            // achieve up to 11 bpc on some Apple machines (MacPro 2013, iMac Retina 5k 2014 & 2015). See:
-            // https://developer.apple.com/library/content/releasenotes/MacOSX/WhatsNewInOSX/Articles/MacOSX10_11_2.html#//apple_ref/doc/uid/TP40016630-SW1
-            //
-            // Note that this is a floating point framebuffer, so the effective linear bit depth for the
-            // displayable color range is much lower. E.g., the 16 bpc half-float translate into actual
-            // ~ 11 bpc linear precision!
-            printf("PTB-INFO: OSX native floating point %i bit per color framebuffer requested, and the OS claims it is working fine. Good.\n", bpc);
-            printf("PTB-INFO: Please note that the effective linear output precision will be *much* lower, e.g., only at most 11 bpc for 16 bpc float.\n");
-            printf("PTB-INFO: Also, only some very limited subset of Apple hardware can actually output up to 11 bpc precision on a few displays.\n");
-            printf("PTB-INFO: As of the year 2016, only the MacPro 2013, and iMac Retina 5k models from late 2014 and late 2015 are claimed\n");
-            printf("PTB-INFO: by Apple to support about 10-11 bit output on some supported displays under some conditions!\n");
-        }
-        else if (bpc >= ((*windowRecord)->depth / 3)) {
+        if (bpc >= ((*windowRecord)->depth / 3)) {
             printf("PTB-INFO: Windows native %i bit per color framebuffer requested, and the OS claims it is working. Good.\n", bpc);
         }
         else {
@@ -648,7 +517,6 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
             FreeWindowRecordFromPntr(*windowRecord);
             return(FALSE);
         }
-#endif
     }
 
     if ((sharedContextWindow == NULL) && ((*windowRecord)->slaveWindow)) {
@@ -960,38 +828,6 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
         skip_synctests = 1;
     }
 
-#if PSYCH_SYSTEM == PSYCH_OSX
-    CGLRendererInfoObj  rendererInfo;
-    CGOpenGLDisplayMask displayMask;
-    CGLError            error;
-
-    displayMask=CGDisplayIDToOpenGLDisplayMask(cgDisplayID);
-
-    GLint numRenderers;
-    error= CGLQueryRendererInfo(displayMask, &rendererInfo, &numRenderers);
-    if(numRenderers>1) numRenderers=1;
-    for(i=0;i<numRenderers;i++) {
-        CGLDescribeRenderer(rendererInfo, i, kCGLRPVideoMemoryMegabytes, &VRAMTotal);
-        CGLDescribeRenderer(rendererInfo, i, kCGLRPTextureMemoryMegabytes, &TexmemTotal);
-    }
-    CGLDestroyRendererInfo(rendererInfo);
-
-    // Are we running a multi-display setup? Then some tests and words of wisdom for the user are important
-    // to reduce the traffic on the Psychtoolbox-Forum ;-)
-
-    // Query number of physically connected and switched on displays...
-    CGDisplayCount totaldisplaycount=0;
-    CGGetOnlineDisplayList(0, NULL, &totaldisplaycount);
-
-    if ((PsychPrefStateGet_Verbosity() > 3) && ((*windowRecord)->windowIndex == PSYCH_FIRST_WINDOW)) {
-        psych_bool multidisplay = (totaldisplaycount>1) ? true : false;
-        if (multidisplay) {
-            printf("\n\nPTB-INFO: You are using a multi-display setup (%i active displays):\n", totaldisplaycount);
-            printf("PTB-INFO: Please read 'help MultiDisplaySetups' for specific information on the Do's, Dont's,\n");
-            printf("PTB-INFO: and possible causes of trouble and how to diagnose and resolve them.\n\n");
-        }
-    }
-#endif
 
     // If we are in stereo mode 4 or 5 (free-fusion, cross-fusion, desktop-spanning stereo),
     // we need to enable Scissor tests to restrict drawing and buffer clear operations to
@@ -1058,7 +894,7 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
     // gpu, where this path is so slow it would cause sync-failure and other cascading trouble,
     // or on OSX where we suspect Apple might have screwed up the glDrawPixels command we use in
     // the classic path:
-    if (PsychIsGLClassic(*windowRecord) && !strstr((*windowRecord)->gpuCoreId, "VC4") && (PSYCH_SYSTEM != PSYCH_OSX)) {
+    if (PsychIsGLClassic(*windowRecord) && !strstr((*windowRecord)->gpuCoreId, "VC4")) {
         double tDummy;
 
         // Classic OpenGL-1/2 splash image drawing code:
@@ -1208,16 +1044,6 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
 
         // Check if a beamposition of 0 is returned at two points in time on OS-X:
         i = 0;
-        if (((int) PsychGetDisplayBeamPosition(cgDisplayID, (*windowRecord)->screenNumber) == 0) && (PSYCH_SYSTEM == PSYCH_OSX)) {
-            // Recheck after 2 ms on OS-X:
-            PsychWaitIntervalSeconds(0.002);
-            if ((int) PsychGetDisplayBeamPosition(cgDisplayID, (*windowRecord)->screenNumber) == 0) {
-                // A constant value of zero is reported on OS-X -> Beam position queries unsupported
-                // on this combo of gfx-driver and hardware :(
-                i=12345;
-            }
-        }
-
         // Check if a beamposition of -1 is returned: This would indicate that beamposition queries
         // are not available on this system:
         if ((-1 != ((int) PsychGetDisplayBeamPosition(cgDisplayID, (*windowRecord)->screenNumber))) && (i!=12345)) {
@@ -1339,20 +1165,8 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
                     vbl_startline = vbl_startline * 2;
                     (*windowRecord)->VBL_Startline = vbl_startline;
 
-                    // OSX doesn't support double-scan modes by default, but a Retina display in scaled mode ("Best for Retina")
-                    // would also lead to this point. Let's assume its non-native res Retina. We don't know if our timestamps make
-                    // sense on such a display: Actual presentation timing might be decoupled from what we think by implicit triple-
-                    // buffering caused by some gpu-based panel scaling, unless the used gpu's panel-fitter has some special circuitry
-                    // to do it on the fly - which i doubt. No way to find out without photo-diode measurements etc., so better tell user
-                    // about potential trouble:
-                    if ((PSYCH_SYSTEM == PSYCH_OSX) && (PsychPrefStateGet_Verbosity() > 1)) {
-                        printf("PTB-WARNING: Seems this window is displayed on a Retina-Display in scaled mode at a non-native resolution for the display.\n");
-                        printf("PTB-WARNING: Reliabiliy of visual stimulus onset timing in such a scaled mode is so far unknown, but may be severely degraded.\n");
-                        printf("PTB-WARNING: Stimulus onset timing and returned timestamps may be wrong, with no way for me to automatically detect this.\n");
-                    }
-
                     // Tell about double-scan video mode:
-                    if ((PSYCH_SYSTEM != PSYCH_OSX) && (PsychPrefStateGet_Verbosity() > 2)) printf("PTB-INFO: Double-Scan video mode detected as active on display for this window.\n");
+                    if (PsychPrefStateGet_Verbosity() > 2) printf("PTB-INFO: Double-Scan video mode detected as active on display for this window.\n");
                 }
 
                 // Compute ifi from beampos:
@@ -1464,7 +1278,7 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
             // Require a std-deviation of maxStddev (default is less than 200 microseconds) on all systems.
             // If a non-Linux system likely has desktop composition enabled, we are more lenient and allow
             // up to 5x the maxStddev which would end up with 1 msec at default settings:
-            stddev = (PsychOSIsDWMEnabled(screenSettings->screenNumber) && (PSYCH_SYSTEM != PSYCH_LINUX)) ? (5 * maxStddev) : maxStddev;
+            stddev = (PsychOSIsDWMEnabled(screenSettings->screenNumber)) ? (5 * maxStddev) : maxStddev;
             // If skipping of sync-test is requested, we limit the calibration to 1 sec.
             maxsecs = (skip_synctests) ? 1 : maxDuration;
             retry_count++;
@@ -1539,10 +1353,7 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
 
             if ((PsychPrefStateGet_VBLTimestampingMode()==4) && !((*windowRecord)->specialflags & kPsychOpenMLDefective)) {
                 printf("PTB-INFO: Will try to use OS-Builtin %s for accurate Flip timestamping.\n",
-                       ((PSYCH_SYSTEM == PSYCH_LINUX) && ((*windowRecord)->winsysType != WAFFLE_PLATFORM_WAYLAND)) ? "OpenML sync control support" : "method");
-            }
-            else if ((PsychPrefStateGet_VBLTimestampingMode()==3) && (PSYCH_SYSTEM == PSYCH_OSX || ((PSYCH_SYSTEM == PSYCH_LINUX) && !((*windowRecord)->specialflags & kPsychOpenMLDefective)))) {
-                printf("PTB-INFO: Will try to use kernel-level interrupts for accurate Flip time stamping.\n");
+                        "method");
             }
             else {
                 if (PsychPrefStateGet_VBLTimestampingMode()>=0) {
@@ -1559,14 +1370,7 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
                 if ((*windowRecord)->hybridGraphics == 3 || (*windowRecord)->hybridGraphics == 4) {
                     printf("PTB-INFO: Will try to use PRIME custom modesetting-ddx protocol for accurate Flip timestamping.\n");
                 } else {
-                    printf("PTB-INFO: Will try to use OS-Builtin %s for accurate Flip timestamping.\n",
-                           ((PSYCH_SYSTEM == PSYCH_LINUX) && ((*windowRecord)->winsysType != WAFFLE_PLATFORM_WAYLAND)) ? "OpenML sync control support" : "method");
-                }
-            }
-            else if ((PsychPrefStateGet_VBLTimestampingMode()==1 || PsychPrefStateGet_VBLTimestampingMode()==3) &&
-                     (PSYCH_SYSTEM == PSYCH_OSX || ((PSYCH_SYSTEM == PSYCH_LINUX) && !((*windowRecord)->specialflags & kPsychOpenMLDefective)))) {
-                if (PSYCH_SYSTEM == PSYCH_OSX || PSYCH_SYSTEM == PSYCH_LINUX) {
-                    printf("PTB-INFO: Beamposition queries unsupported on this system. Will try to use kernel-level vbl interrupts as fallback.\n");
+                    printf("PTB-INFO: Will try to use OS-Builtin %s for accurate Flip timestamping.\n","method");
                 }
             }
             else {
@@ -1720,16 +1524,6 @@ psych_bool PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, Psyc
         printf("PTB-WARNING: STIMULUS ONSET TIMING WILL BE UNRELIABLE AS WELL, AND GRAPHICS PERFORMANCE MAY BE SEVERELY REDUCED!\n");
         printf("PTB-WARNING: DO NOT USE MULTI-DISPLAY MODE FOR RUNNING REAL EXPERIMENT SESSIONS WITH ANY REQUIREMENTS FOR ACCURATE TIMING!\n");
         printf("PTB-WARNING: ==============================================================================================================\n");
-    }
-
-    // Check for desktop compositor activity on OSX: Check not (yet) applicable on Linux, as it is only reliable with KDE/KWin...
-    if ((PSYCH_SYSTEM == PSYCH_OSX) && PsychOSIsDWMEnabled(screenSettings->screenNumber) && (PsychPrefStateGet_Verbosity() > 1)) {
-        // Desktop compositor active for our onscreen window. Explain consequences to user:
-        printf("PTB-WARNING: ==================================================================================================================\n");
-        printf("PTB-WARNING: DESKTOP COMPOSITOR IS ACTIVE! ALL FLIP STIMULUS ONSET TIMESTAMPS WILL BE VERY LIKELY UNRELIABLE AND LESS ACCURATE!\n");
-        printf("PTB-WARNING: STIMULUS ONSET TIMING WILL BE UNRELIABLE AS WELL, AND GRAPHICS PERFORMANCE MAY BE REDUCED!\n");
-        printf("PTB-WARNING: DO NOT USE THIS MODE FOR RUNNING REAL EXPERIMENT SESSIONS WITH ANY REQUIREMENTS FOR ACCURATE TIMING!\n");
-        printf("PTB-WARNING: ==================================================================================================================\n");
     }
 
     if (skip_synctests < 2) {
@@ -2589,22 +2383,6 @@ void* PsychFlipperThreadMain(void* windowRecordToCast)
         // this is needed - not much of a point adding extra subfunctions for it
         // (yes, i know, this layering violation out of lazyness is lame!).
 
-        #if PSYCH_SYSTEM == PSYCH_OSX
-            CGLSetCurrentContext(windowRecord->targetSpecific.glswapcontextObject);
-        #endif
-
-        #if PSYCH_SYSTEM == PSYCH_LINUX
-            PsychLockDisplay();
-            #ifndef PTB_USE_WAFFLE
-                glXMakeCurrent(windowRecord->targetSpecific.deviceContext, windowRecord->targetSpecific.windowHandle, windowRecord->targetSpecific.glswapcontextObject);
-            #else
-                if (!waffle_make_current(windowRecord->targetSpecific.deviceContext, windowRecord->targetSpecific.windowHandle, windowRecord->targetSpecific.glswapcontextObject) &&
-                    (PsychPrefStateGet_Verbosity() > 0)) {
-                        printf("\nPTB-ERROR: Failed to bind OpenGL context for async flip thread [%s]! This will end badly...\n", waffle_error_to_string(waffle_error_get_code()));
-                }
-            #endif
-            PsychUnlockDisplay();
-        #endif
 
         #if PSYCH_SYSTEM == PSYCH_WINDOWS
             wglMakeCurrent(windowRecord->targetSpecific.deviceContext, windowRecord->targetSpecific.glswapcontextObject);
@@ -2677,16 +2455,6 @@ void* PsychFlipperThreadMain(void* windowRecordToCast)
                 // our swap context to the windows EGL backing surface, knowing the master
                 // thread doesn't have the surface bound and won't bind it until we're fully
                 // done with the swap:
-                #if PSYCH_SYSTEM == PSYCH_LINUX
-                    PsychLockDisplay();
-                    #ifdef PTB_USE_WAFFLE
-                        if (!waffle_make_current(windowRecord->targetSpecific.deviceContext, windowRecord->targetSpecific.windowHandle, windowRecord->targetSpecific.glswapcontextObject) &&
-                            (PsychPrefStateGet_Verbosity() > 0)) {
-                            printf("\nPTB-ERROR: Failed to rebind OpenGL context for async flip thread [%s]! This will end badly...\n", waffle_error_to_string(waffle_error_get_code()));
-                        }
-                    #endif
-                    PsychUnlockDisplay();
-                #endif
             }
 
             // Setup view: We set the full backbuffer area of the window.
@@ -3701,10 +3469,6 @@ double PsychFlipWindowBuffers(PsychWindowRecordType *windowRecord, int multiflip
             if (windowRecord->slaveWindow && PsychIsMasterThread()) PsychOSSetVBLSyncLevel(windowRecord->slaveWindow, 0);
         }
         else {
-            // The horror of Apple OS/X: Do a redundant call to enable vsync on the async
-            // glswapcontext for async flips despite vsync is already enabled on that context.
-            // Otherwise vsync will fail -- Bug found on 10.4.11:
-            if ((PSYCH_SYSTEM == PSYCH_OSX) && !PsychIsMasterThread()) PsychOSSetVBLSyncLevel(windowRecord, 1);
         }
     }
 
@@ -4154,89 +3918,6 @@ double PsychFlipWindowBuffers(PsychWindowRecordType *windowRecord, int multiflip
                 PsychWaitPixelSyncToken(windowRecord, FALSE);
             }
 
-            #if PSYCH_SYSTEM == PSYCH_LINUX
-                #ifndef GLX_BACK_BUFFER_AGE_EXT
-                #define GLX_BACK_BUFFER_AGE_EXT 0x20F4
-                #endif
-
-                #ifndef PTB_USE_WAFFLE
-                    // Extra-paranoia for fullscreen windows on Linux, just because we can:
-                    if ((windowRecord->specialflags & kPsychIsFullscreenWindow) && (PsychPrefStateGet_SkipSyncTests() < 2)) {
-                        // Linux: GLX_EXT_buffer_age supported? If so, then we can query the age in frames of our current post-swap backbuffer.
-                        // A value of 2 means double-buffering is used by the gfx-driver, a value of 3 is triple-buffering, zero is single-buffering, n is n-nbuffering, ...
-                        // Our currently chosen classic timestamping path absolutely requires double-buffering, so any value other than 2 means big trouble for timing:
-                        // However, we also accept a value of zero, as this can legally happen if the driver employs some special optimizations -- zero is non-diagnostic,
-                        // neither a sign of success, nor a sign of failure, so we just ignore it to avoid meaningless warning clutter in the rare cases where it turns up.
-                        // One example of such an optimization are first time use of AUX buffers on a NVidia gpu with NVidia proprietary driver. Some funny lazy allocation going on...
-                        // The value of 1 is observed when a desktop compositor (3d OpenGL, or 2d X-RENDER based) is active and redirecting our window to a composition surface
-                        // by a framebuffer copy from backbuffer -> compositor buffer -- copy leads to constant buffer_age of 1.
-                        //
-                        // There also seem to be some false positive reports by some versions of the NVidia proprietary graphics driver on some gpus and setups.
-                        // To avoid flooding the screen with meaningless warnings we turn this into a one-time warning, so the amount of chatter is tolerable on
-                        // setups with a misreporting driver. We also tone down the text of the warning message a bit, as this is more an indicator that something
-                        // could be wrong than a clear proof that something is wrong.
-                        //
-                        unsigned int buffer_age = 2; // Init to 2 to give benefit of doubt in case query below fails.
-                        if (windowRecord->gfxcaps & kPsychGfxCapSupportsBufferAge) {
-                            PsychLockDisplay();
-                            glXQueryDrawable(windowRecord->targetSpecific.deviceContext, windowRecord->targetSpecific.windowHandle, GLX_BACK_BUFFER_AGE_EXT, &buffer_age);
-                            PsychUnlockDisplay();
-
-                            if ((buffer_age > 0) && (buffer_age != 2) && (verbosity > 1) && !(windowRecord->specialflags & kPsychBufferAgeWarningDone)) {
-                                // One time warning only:
-                                windowRecord->specialflags |= kPsychBufferAgeWarningDone;
-
-                                printf("PTB-WARNING: OpenGL driver seems to use %i-buffering instead of the required double-buffering for Screen('Flip').\n", buffer_age);
-                                printf("PTB-WARNING: This could be a false positive in which case there is no reason to worry, but it could also indicate some problem\n");
-                                printf("PTB-WARNING: with visual stimulus onset timing on your setup, which would impair visual timing and timestamps of Screen('Flip').\n");
-                                printf("PTB-WARNING: If timing matters, I'd recommend performing further diagnosis and potential troubleshooting (read 'help SyncTrouble').\n");
-                                if (buffer_age == 1) printf("PTB-WARNING: One potential cause for this is that some kind of desktop compositor is active and interfering.\n");
-                                if (buffer_age == 3) printf("PTB-WARNING: One potential cause for this is that TripleBuffering is enabled somewhere in the driver or xorg.conf settings.\n");
-                                if (buffer_age > 3) printf("PTB-WARNING: One potential cause for this is that %i-Buffering is enabled somewhere in the driver or xorg.conf settings.\n", buffer_age);
-                                if ((windowRecord->hybridGraphics == 2) && strstr((char*) glGetString(GL_VENDOR), "NVIDIA")) {
-                                    printf("PTB-WARNING: The most likely cause on this NVidia Optimus setup is the use of the proprietary driver, which will massively impair proper timing!\n");
-                                    printf("PTB-WARNING: Use the open-source nouveau graphics driver, or install the enhanced modesetting ddx, or do not use the NVidia gpu at all, if you\n");
-                                    printf("PTB-WARNING: care about research grade timing. See 'help HybridGraphics' for more info.\n");
-                                }
-                                printf("PTB-WARNING: This is a one-time warning which will not repeat, even if the problem persists during this session.\n\n");
-                            }
-
-                            if (verbosity > 9) printf("PTB-DEBUG: GLX_BACK_BUFFER_AGE_EXT == %i after swap completion.\n", buffer_age);
-                        }
-                    }
-                #endif
-
-                // Additional paranoia check at high debug levels where performance doesn't matter anymore.
-                // Check if compositor is active. This just to test functionality, we won't enable this check
-                // for normal operation yet, as i suspect it involves a potentially expensive time-consuming
-                // roundtrip to the x-server, which may not be acceptable for high-framerate stimulus presentation.
-                //
-                // In its current form this is only useful for development and testing, as the method implemented
-                // only detects true compositor activity reliably with KDE/KWin. On other compositors it always
-                // reports composition on, even if the compositor is just hanging around idly in standby mode. We
-                // can't afford that many false alerts.
-                if ((verbosity > 10) && PsychOSIsDWMEnabled(windowRecord->screenNumber)) printf("PTB-DEBUG:Linux:Screen('Flip'): After swapcomplete compositor reported active.\n");
-            #endif
-
-            // Check if we can get a second opinion about use of pageflipping from the GPU itself, assuming standard
-            // swap scheduling was used and beampos timestamping works - ergo other GPU low level features like this,
-            // as otherwise the results would be misleading:
-            if (!osspecific_asyncflip_scheduled && (PSYCH_SYSTEM == PSYCH_LINUX || PSYCH_SYSTEM == PSYCH_OSX) &&
-                (windowRecord->VBL_Endline != -1)) {
-                int pflip_status = PsychIsGPUPageflipUsed(windowRecord);
-                if (verbosity > 10) printf("PTB-DEBUG: PsychFlipWindowBuffers(): After swapcomplete PsychIsGPUPageflipUsed() = %i.\n", pflip_status);
-
-                // Only really relevant for fullscreen windows if pageflipping is used and under our control:
-                if ((windowRecord->specialflags & kPsychIsFullscreenWindow) && (PsychPrefStateGet_SkipSyncTests() < 2)) {
-                    // -1 = Don't know / non-diagnostic. 2 = Pageflip completed - Good. Everything else
-                    // means trouble - either copyswap or desktop compositing:
-                    if ((pflip_status != -1) && (pflip_status != 2) && (verbosity > 1)) {
-                        printf("PTB-WARNING: GPU reports that pageflipping isn't used - or under our control - for Screen('Flip')! [pflip_status = %i]\n", pflip_status);
-                        printf("PTB-WARNING: Returned Screen('Flip') timestamps might be wrong! Please fix this now (read 'help SyncTrouble').\n");
-                        if (pflip_status == 1) printf("PTB-WARNING: The most likely cause for this is that some kind of desktop compositor is active and interfering.\n");
-                    }
-                }
-            }
         }
 
         // At this point, start of VBL on masterdisplay has happened, the bufferswap has completed and we can continue execution...
@@ -4300,7 +3981,6 @@ double PsychFlipWindowBuffers(PsychWindowRecordType *windowRecord, int multiflip
                 // results. We take longer breaks between query retries to increase the chance of a callback
                 // delivering updated results to us. Best we can do, after all other approaches turned out to
                 // be flawed or fragile as well and Apple seems to be utterly disinterested in fixing their mess.
-                if (PSYCH_SYSTEM == PSYCH_OSX) PsychWaitIntervalSeconds(0.00025);
                 PsychWaitIntervalSeconds(0.00025);
                 postflip_vbltimestamp = PsychOSGetVBLTimeAndCount(windowRecord, &postflip_vblcount);
                 vbltimestampquery_retrycount++;
@@ -4364,9 +4044,6 @@ double PsychFlipWindowBuffers(PsychWindowRecordType *windowRecord, int multiflip
 
                         if ((swap_msc >= 0) && (vbltimestampmode == 4)) {
                             printf("PTB-INFO: Will use OS-Builtin timestamping mechanism solely for further timestamping.\n");
-                        }
-                        else if ((PSYCH_SYSTEM == PSYCH_OSX) && (vbltimestampmode == 1)) {
-                            printf("PTB-ERROR: As this is macOS, i'll switch to a likely equally broken mechanism based on CoreVideo timestamps. But hope dies last...\n");
                         }
                         else {
                             printf("PTB-ERROR: Timestamps returned by Flip will be correct, but less robust and accurate than they would be with working beamposition queries.\n");
@@ -4511,135 +4188,24 @@ double PsychFlipWindowBuffers(PsychWindowRecordType *windowRecord, int multiflip
             }
             else {
                 // VBL timestamping didn't deliver results? Because it is not enabled in parallel with beampos queries?
-                if ((vbltimestampmode == 1) && (PSYCH_SYSTEM == PSYCH_OSX || PSYCH_SYSTEM == PSYCH_LINUX)) {
-                    // Auto fallback enabled, but not if beampos queries appear to be functional. They are
-                    // dysfunctional by now, but weren't at swap time, so we can't get any useful data from
-                    // kernel level timestamping. However in the next round we should get something. Therefore,
-                    // enable both methods in consistency cross check mode:
-                    PsychPrefStateSet_VBLTimestampingMode(2);
+                // Ok, we lost:
+                // VBL kernel level timestamping not operational or intentionally disabled: No backup solutions left, and no way to
+                // cross-check stuff: We disable high precision timestamping completely:
 
-                    // Set vbltimestampmode = 0 for rest of this subfunction, so the checking code for
-                    // stand-alone kernel level timestamping below this routine gets suppressed for this
-                    // iteration:
-                    vbltimestampmode = 0;
-
-                    if (verbosity > -1) {
-                        printf("PTB-ERROR: I have enabled additional cross checking between beamposition based and kernel-level based timestamping.\n");
-                        printf("PTB-ERROR: This should allow to get a better idea of what's going wrong if successive invocations of Screen('Flip');\n");
-                        printf("PTB-ERROR: fail to deliver proper timestamps as well. It may even fix the problem if the unlikely culprit would be\n");
-                        printf("PTB-ERROR: a bug in beamposition based high precision timestamping. We will see...\n\n");
-                        printf("PTB-ERROR: An equally likely cause would be that Synchronization of stimulus onset (buffer swap) to the\n");
-                        printf("PTB-ERROR: vertical blank interval VBL, or of swap completion to completion signalling is not working properly.\n");
-                        printf("PTB-ERROR: Please run the script PerceptualVBLSyncTest to check this. With non-working sync to VBL, all stimulus timing\n");
-                        printf("PTB-ERROR: is futile. Also run OSXCompositorIdiocyTest on macOS. Also read 'help SyncTrouble' !\n");
-                    }
-                }
-                else {
-                    // Ok, we lost:
-                    // VBL kernel level timestamping not operational or intentionally disabled: No backup solutions left, and no way to
-                    // cross-check stuff: We disable high precision timestamping completely:
-
-                    // Disable beamposition timestamping for further session:
-                    PsychPrefStateSet_VBLTimestampingMode(-1);
-                    vbltimestampmode = -1;
-
-                    if (verbosity > -1) {
-                        printf("PTB-ERROR: This error can be due to either of the following causes:\n");
-                        printf("PTB-ERROR: Very unlikely: Something is broken in your systems beamposition timestamping. I've disabled high precision\n");
-                        printf("PTB-ERROR: timestamping for now. Returned timestamps will be less robust and accurate.\n\n");
-                        printf("PTB-ERROR: The most likely cause would be that Synchronization of stimulus onset (buffer swap) to the\n");
-                        printf("PTB-ERROR: vertical blank interval VBL is not working properly, or swap completion signalling to PTB is broken.\n");
-                        printf("PTB-ERROR: Please run the script PerceptualVBLSyncTest to check this. With non-working sync to VBL, all stimulus timing\n");
-                        printf("PTB-ERROR: is futile. Also run OSXCompositorIdiocyTest on macOS. Also read 'help SyncTrouble' !\n");
-                    }
-                }
-            }
-        }
-
-        // VBL IRQ based timestamping in charge? Either because selected by usercode, or as a fallback for failed/disabled beampos timestamping or OS-Builtin timestamping?
-        if ((PSYCH_SYSTEM == PSYCH_OSX || PSYCH_SYSTEM == PSYCH_LINUX) && !(windowRecord->specialflags & kPsychSkipWaitForFlipOnce) &&
-            ((vbltimestampmode == 3) || (!osspecific_asyncflip_scheduled && vbltimestampmode == 4 && windowRecord->VBL_Endline == -1 && swap_msc < 0) || ((vbltimestampmode == 1 || vbltimestampmode == 2) && windowRecord->VBL_Endline == -1))) {
-            // Yes. Try some consistency checks for that:
-
-            // Some diagnostics at high debug-levels:
-            if (vbltimestampquery_retrycount > 0 && verbosity > 10) {
-                printf("PTB-DEBUG: In PsychFlipWindowBuffers(), VBLTimestamping: RETRYCOUNT %i : Delta Swaprequest - preflip_vbl timestamp: %f secs.\n", (int) vbltimestampquery_retrycount, time_at_swaprequest - preflip_vbltimestamp);
-            }
-
-            if ((vbltimestampquery_retrycount>=8) && (preflip_vbltimestamp == postflip_vbltimestamp) && (preflip_vbltimestamp > 0)) {
-                // Postflip timestamp equals valid preflip timestamp after many retries:
-                // This can be due to a swaprequest emitted and satisfied/completed within a single VBL
-                // interval - then it would be perfectly fine. Or it happens despite a swaprequest in
-                // the middle of a video refersh cycle. Then it would indicate trouble, either with the
-                // timestamping mechanism or with sync of bufferswaps to VBL:
-                // If we happened to do everything within a VBL, then the different timestamps should
-                // be close together -- probably within 2 msecs - the max duration of a VBL and/or retry sequence:
-                if (fabs(preflip_vbltimestamp - time_at_swaprequest) < 0.002) {
-                    // Swaprequest, Completion and whole timestamping happened likely within one VBL,
-                    // so no reason to worry...
-                    if (verbosity > 10) {
-                        printf("PTB-DEBUG: With kernel-level timestamping: ");
-                        printf("vbltimestampquery_retrycount = %i, preflip_vbltimestamp=postflip= %f, time_at_swaprequest= %f\n", (int) vbltimestampquery_retrycount, preflip_vbltimestamp, time_at_swaprequest);
-                    }
-                }
-                else {
-                    // Stupid values, but swaprequest not close to VBL, but likely within refresh cycle.
-                    // This could be either broken queries, or broken sync to VBL:
-                    if (verbosity > -1) {
-                        printf("\n\nPTB-ERROR: Screen('Flip'); kernel-level timestamping computed bogus values!!!\n");
-                        printf("PTB-ERROR: vbltimestampquery_retrycount = %i, preflip_vbltimestamp=postflip= %f, time_at_swaprequest= %f\n", (int) vbltimestampquery_retrycount, preflip_vbltimestamp, time_at_swaprequest);
-                        printf("PTB-ERROR: This error can be due to either of the following causes:\n");
-                        printf("PTB-ERROR: Either something is broken in your systems VBL-IRQ timestamping. I've disabled high precision\n");
-                        printf("PTB-ERROR: timestamping for now. Returned timestamps will be less robust and accurate, but at least ok, if that was the culprit.\n\n");
-                        printf("PTB-ERROR: The by far most likely cause would be that Synchronization of stimulus onset (buffer swap) to the\n");
-                        printf("PTB-ERROR: vertical blank interval VBL or of swap completion to completion signalling is not working properly.\n");
-                        printf("PTB-ERROR: Please run the script PerceptualVBLSyncTest to check this. With non-working sync to VBL, all stimulus timing\n");
-                        printf("PTB-ERROR: is futile. Also run OSXCompositorIdiocyTest on macOS. Also read 'help SyncTrouble' !\n\n\n");
-                    }
-
-                    PsychPrefStateSet_VBLTimestampingMode(-1);
-                    time_at_vbl = time_at_swapcompletion;
-                    *time_at_onset=time_at_vbl;
-                }
-            }
-
-            // We try to detect wrong order of events, but again allow for a bit of slack,
-            // as some drivers (this time on PowerPC) have their own share of trouble. Specifically,
-            // this might happen if a driver performs VBL timestamping at the end of a VBL interval,
-            // instead of at the beginning. In that case, the bufferswap may happen at rising-edge
-            // of VBL, get acknowledged and timestamped by us somewhere in the middle of VBL, but
-            // the postflip timestamping via IRQ may carry a timestamp at end of VBL.
-            // ==> Swap would have happened correctly within VBL and postflip timestamp would
-            // be valid, just the order would be unexpected. We set a slack of 2.5 msecs, because
-            // the duration of a VBL interval is usually no longer than that.
-            if (postflip_vbltimestamp - time_at_swapcompletion > 0.0025) {
-                // VBL irq queries broken! Disable them.
-                if (verbosity > -1) {
-                    printf("PTB-ERROR: VBL kernel-level timestamp queries broken on your setup [Impossible order of events]!\n");
-                    printf("PTB-ERROR: Will disable them for now until the problem is resolved. You may want to restart Matlab and retry.\n");
-                    printf("PTB-ERROR: postflip - time_at_swapcompletion == %f secs.\n", postflip_vbltimestamp - time_at_swapcompletion);
-                    printf("PTB-ERROR: Btw. if you are running in windowed mode, this is not unusual -- timestamping doesn't work well in windowed mode...\n");
-                }
-
+                // Disable beamposition timestamping for further session:
                 PsychPrefStateSet_VBLTimestampingMode(-1);
-                time_at_vbl = time_at_swapcompletion;
-                *time_at_onset=time_at_vbl;
-            }
-        }
+                vbltimestampmode = -1;
 
-        // Special case NVidia Optimus laptop with proprietary graphics driver. Only DRI PRIME slave output operation
-        // available, not the precise and reliable gpu renderoffload. Timestamping is highly fragile, unreliable and
-        // inaccurate, but one thing we do know, at least in the initial XOrg 1.19 implementation, is that the timestamp
-        // will be at least one video refresh too early. Therefore, if we have such a type 2 setup, we add 1 refresh duration
-        // to the so far computed timestamps.
-        // Note that these assignments get overriden directly below in VBLTimestampingMode 4 if we are running under the
-        // custom modified XOrg 1.19 modesetting ddx as a fullscreen window and therefore received a high precision timestamp
-        // in tSwapComplete from PsychOSGetSwapCompletionTimestamp(). This snippet only gets used in the fallback on unmodified
-        // XOrg 1.19 to keep us limping along with bad/inaccurate/unreliable timestamps that are at least somehow self-consistent
-        // in some sense:
-        if ((PSYCH_SYSTEM == PSYCH_LINUX) && (windowRecord->specialflags & kPsychIsX11Window) && ((windowRecord->hybridGraphics == 2) || (windowRecord->hybridGraphics == 3))) {
-            time_at_vbl += windowRecord->VideoRefreshInterval;
-            *time_at_onset += windowRecord->VideoRefreshInterval;
+                if (verbosity > -1) {
+                    printf("PTB-ERROR: This error can be due to either of the following causes:\n");
+                    printf("PTB-ERROR: Very unlikely: Something is broken in your systems beamposition timestamping. I've disabled high precision\n");
+                    printf("PTB-ERROR: timestamping for now. Returned timestamps will be less robust and accurate.\n\n");
+                    printf("PTB-ERROR: The most likely cause would be that Synchronization of stimulus onset (buffer swap) to the\n");
+                    printf("PTB-ERROR: vertical blank interval VBL is not working properly, or swap completion signalling to PTB is broken.\n");
+                    printf("PTB-ERROR: Please run the script PerceptualVBLSyncTest to check this. With non-working sync to VBL, all stimulus timing\n");
+                    printf("PTB-ERROR: is futile. Also run OSXCompositorIdiocyTest on macOS. Also read 'help SyncTrouble' !\n");
+                }
+            }
         }
 
         // Shall OS-Builtin optimal timestamping override all other results (vbltimestampmode 4)
@@ -5032,14 +4598,6 @@ double PsychGetMonitorRefreshInterval(PsychWindowRecordType *windowRecord, int* 
         // Protect against multi-threading trouble if needed:
         PsychLockedTouchFramebufferIfNeeded(windowRecord);
 
-        if (PSYCH_SYSTEM == PSYCH_OSX) {
-            // Give gfx-system a second to settle: This stupid hack to
-            // counteract a new type of stupid bug introduced in OSX 10.11
-            // El Capitan: Sync failure at each first run after application
-            // startup. Thanks Apple!
-            PsychYieldIntervalSeconds(1);
-        }
-
         PsychGetAdjustedPrecisionTimerSeconds(&tstart);
 
         // Take samples during consecutive refresh intervals:
@@ -5195,10 +4753,6 @@ double PsychGetMonitorRefreshInterval(PsychWindowRecordType *windowRecord, int* 
                 printf("PTB-WARNING: Pageflipping wasn't used %s during refresh calibration [%i of %i].\n",
                        (pflip_count > 0) ? "consistently" : "at all", pflip_count, i);
                 printf("PTB-WARNING: Visual presentation timing is broken on your system and all followup tests and workarounds will likely fail.\n");
-                if (PSYCH_SYSTEM == PSYCH_OSX) {
-                    printf("PTB-WARNING: On this Apple macOS system you probably don't need to even bother asking anybody for help.\n");
-                    printf("PTB-WARNING: Just upgrade to Linux if you care about trustworthy visual timing and stimulation.\n\n");
-                }
             }
         }
     } // End of IFI measurement code.
@@ -6879,18 +6433,6 @@ void PsychDetectAndAssignGfxCapabilities(PsychWindowRecordType *windowRecord)
             printf("PTB-DEBUG: Not running on Mesa graphics library.\n");
     }
 
-    #if PSYCH_SYSTEM == PSYCH_LINUX
-    // Try to query renderer gpu vendor from Mesa if supported:
-    if (glxewIsSupported("GLX_MESA_query_renderer") && (glXQueryCurrentRendererIntegerMESA != NULL) &&
-        glXQueryCurrentRendererIntegerMESA(GLX_RENDERER_VENDOR_ID_MESA, &rendergpuVendor) && (rendergpuVendor != 0xFFFFFFFF)) {
-        if (verbose)
-            printf("PTB-DEBUG: Vendor Id of render gpu - rendergpuVendor 0x%x.\n", rendergpuVendor);
-    }
-    else {
-        rendergpuVendor = 0;
-    }
-    #endif
-
     // Init Id string for GPU core to zero. This has at most 8 Bytes, including 0-terminator,
     // so use at most 7 letters!
     memset(&(windowRecord->gpuCoreId[0]), 0, 8);
@@ -6923,196 +6465,7 @@ void PsychDetectAndAssignGfxCapabilities(PsychWindowRecordType *windowRecord)
         vc4 = TRUE; sprintf(windowRecord->gpuCoreId, "VC4");
     }
 
-    // Is this a hybrid graphics dual-gpu laptop which uses DRI PRIME for muxless render offload?
-    #if PSYCH_SYSTEM == PSYCH_LINUX
-    if ((getenv("DRI_PRIME") && ((const char*) getenv("DRI_PRIME"))[0] != '0') ||
-        (rendergpuVendor && (rendergpuVendor != 0xFFFFFFFF) && (gpuMaintype != kPsychUnknown) &&
-        glXQueryCurrentRendererIntegerMESA(GLX_RENDERER_DEVICE_ID_MESA, &rendergpuModel) && (rendergpuModel != 0xFFFFFFFF) && (gpuModel != (int) 0xFFFFFFFF) &&
-        (((int) rendergpuModel != gpuModel) || (gpuMaintype == kPsychIntelIGP && rendergpuVendor != PCI_VENDOR_ID_INTEL) ||
-        (gpuMaintype == kPsychGeForce && rendergpuVendor != PCI_VENDOR_ID_NVIDIA) ||
-        (gpuMaintype == kPsychRadeon && rendergpuVendor != PCI_VENDOR_ID_AMD && rendergpuVendor != PCI_VENDOR_ID_ATI)))) {
-        windowRecord->hybridGraphics = 1;
-        if (verbose) printf("PTB-DEBUG: Prime indicators: rendergpuVendor 0x%x, rendergpuModel 0x%x, displaygpuModel 0x%x displaygpuType 0x%x.\n", rendergpuVendor, rendergpuModel, gpuModel, gpuMaintype);
-        if (PsychPrefStateGet_Verbosity() >= 3) printf("PTB-INFO: Hybrid graphics setup with DRI PRIME muxless render offload detected.\n");
-
-        // Prime renderoffload only works with proper timing and quality if DRI3/Present
-        // is used for our onscreen window:
-        if ((windowRecord->specialflags & kPsychIsX11Window) && !(windowRecord->specialflags & kPsychIsDRI3Window) && (PsychPrefStateGet_Verbosity() > 1)) {
-            printf("PTB-WARNING: Hybrid graphics DRI PRIME muxless render offload requires the use of DRI3/Present for rendering,\n");
-            printf("PTB-WARNING: but this is not enabled on your setup. Use XOrgConfCreator to setup your system accordingly.\n");
-            printf("PTB-WARNING: Without this, your visual stimulation will suffer severe timing and display artifacts.\n\n");
-        }
-    }
-
-    // Find out if the primary output of the screen on which this window is
-    // displaying has a "PRIME Synchronization" output property. If so then
-    // we are likely running under a NVidia Optimus PRIME setup with output slave
-    // instead of a DRI3/Present renderoffload setup and need to take note
-    // of this for some special case handling:
-    if ((windowRecord->specialflags & kPsychIsX11Window) && (gpuMaintype == kPsychIntelIGP) && strstr((char*) glGetString(GL_VENDOR), "NVIDIA")) {
-        static Atom nvidiaprimesync;
-        CGDirectDisplayID dpy;
-        int screen;
-        RROutput output = (RROutput) 0;
-
-        // Get XID / RROutput id of primary output for this screen:
-        PsychOSGetOutputProps(windowRecord->screenNumber, 0, NULL, NULL, (unsigned long *) &output);
-
-        // Map screenNumber to dpy, screen, rootwindow and RandR output:
-        PsychGetCGDisplayIDFromScreenNumber(&dpy, windowRecord->screenNumber);
-        screen = PsychGetXScreenIdForScreen(windowRecord->screenNumber);
-
-        PsychLockDisplay();
-
-        nvidiaprimesync = XInternAtom(dpy, "PRIME Synchronization", True);
-        if (nvidiaprimesync != None) {
-            Window root = RootWindow(dpy, screen);
-            XRRScreenResources *resources = XRRGetScreenResources(dpy, root);
-            if (resources) {
-                // Prime sync property exposed?
-                unsigned long nitems;
-                unsigned long bytes_after;
-                unsigned char *prop;
-                Atom actual_type;
-                int actual_format;
-                // Get Prime sync property for primary output:
-                if ((XRRGetOutputProperty(dpy, output, nvidiaprimesync, 0, 4, False, False, None, &actual_type, &actual_format, &nitems, &bytes_after, &prop) == Success) && (prop != NULL)) {
-                    char prime_sync_on = *((char *) prop);
-                    XFree(prop);
-                    windowRecord->hybridGraphics = 2;
-
-                    // Are we running under the hacked/enhanced modesetting ddx as outputSink
-                    // driver, which supports our custom UDP flip timestamping protocol?
-                    if (XInternAtom(dpy, "PrimeTimingHack1", True) != None) {
-                        windowRecord->hybridGraphics = 3;
-                    }
-
-                    // Is this a modesetting ddx with additional 1 frame lag avoidance?
-                    if (XInternAtom(dpy, "PrimeTimingHack2", True) != None) {
-                        windowRecord->hybridGraphics = 4;
-                    }
-
-                    if (PsychPrefStateGet_Verbosity() >= 3) {
-                        printf("PTB-INFO: Hybrid graphics setup with support for \"NVidia Optimus\" DRI PRIME-Sync output slaving detected - or so i think?\n");
-                        printf("PTB-INFO: If you are displaying on a video output directly connected to the NVidia gpu, then my thinking here\n");
-                        printf("PTB-INFO: might be wrong. In that case use PsychTweak('UseGPUIndex') to fix me! Otherwise timing might be wrong.\n");
-                        printf("PTB-INFO: If i'm right, then the following assessments hold for your Optimus setup with NVidia's proprietary driver:\n");
-
-                        if (!prime_sync_on) {
-                            printf("PTB-WARNING: Optimus GPU synchronization seems to be disabled. Maybe the nvidia-modesetting driver is not enabled?\n");
-                            printf("PTB-WARNING: Both visual timing and timestamping will likely be highly unreliable. Please read 'help HybridGraphics'\n");
-                            printf("PTB-WARNING: on how to enable nvidia-modesetting, and then reboot once to improve quality of visual stimulation.\n");
-                        }
-                        else if (windowRecord->hybridGraphics < 3) {
-                            printf("PTB-INFO: The custom modesetting ddx of Psychtoolbox for Optimus is not installed, so visual timestamping will be wrong!\n");
-                            printf("PTB-INFO: Therefore visual timing and timestamping will likely be highly unreliable. Please read 'help HybridGraphics'\n");
-                            printf("PTB-INFO: on how to install a custom modesetting ddx in order to fix visual onset timestamping and improve timing.\n");
-                        }
-                        else if (windowRecord->hybridGraphics >= 3) {
-                            printf("PTB-INFO: Custom modesetting ddx detected. Visual onset timestamps should be mostly reliable at least on display setups\n");
-                            printf("PTB-INFO: with at most one display per X-Screen and one topmost, non-transparent fullscreen window on that X-Screen.\n");
-                            if (windowRecord->hybridGraphics < 4) {
-                                printf("PTB-INFO: Accurate onset timing requires strict adherence to recommended practices for Screen('Flip', window, tWhen) 'tWhen' times.\n");
-                                printf("PTB-INFO: An extra stimulus onset delay of 1 video refresh cycle can't be avoided for immediate flips with this driver though.\n");
-                                printf("PTB-INFO: If you need low-latency stimulus onset, install the NoLag variant of the modesetting ddx instead of the highlag variant.\n");
-                            }
-                        }
-                    }
-                }
-                XRRFreeScreenResources(resources);
-            }
-        }
-        else {
-            // Intel iGPU + NVidia dGPU + NVidia proprietary driver, but no PRIME-SYNC capable ddx.
-            // This is likely hopeless, warn user:
-            if (PsychPrefStateGet_Verbosity() >= 3) {
-                printf("PTB-INFO: This seems to be an Optimus hybrid graphics laptop with proprietary NVidia driver, which will cause timing problems.\n");
-                printf("PTB-INFO: Please read 'help HybridGraphics' on how to install a custom modesetting ddx on X-Server 1.19 or later in order to\n");
-                printf("PTB-INFO: fix visual onset timestamping and improve timing. If you are displaying on a video output directly connected to the\n");
-                printf("PTB-INFO: NVidia gpu though, then my mapping of GPU's might be wrong (PsychTweak('UseGPUIndex') to fix it) and you can ignore\n");
-                printf("PTB-INFO: this message.\n");
-            }
-        }
-        PsychUnlockDisplay();
-    }
-
-    // On a hybridGraphics setup always make sure our Linux kernel is recent enough:
-    if ((windowRecord->hybridGraphics) && (PsychPrefStateGet_Verbosity() > 1)) {
-        struct utsname unameresult;
-        int major = 0, minor = 0, patchlevel = 0;
-        uname(&unameresult);
-        sscanf(unameresult.release, "%i.%i.%i", &major, &minor, &patchlevel);
-
-        // If the display iGPU is an Intel chip then we need kernel 4.6 or later for proper dmabuf-fence sync:
-        if (gpuMaintype == kPsychIntelIGP) {
-            // Need at least Linux 4.6 for Intel iGPU + some dGPU. In principle 4.5 would do,
-            // but NVIDIA found some performance issues when running on their Optimus drivers
-            // wrt. concurrent hardware cursor updates on the Intel side. Linux 4.6 seems to
-            // fix that, according to them.
-            if (major < 4 || (major == 4 && minor < 6)) {
-                printf("PTB-WARNING: This hybrid graphics setup uses a Intel gpu for display, but your Linux kernel %i.%i.%i is too old.\n", major, minor, patchlevel);
-                printf("PTB-WARNING: Please upgrade to Linux version 4.6 or later for hybrid graphics support without visual stimulation artifacts.\n");
-                printf("PTB-WARNING: If your machine has a modern AMD discrete gpu, upgrading to Linux 4.8.11 or later is required.\n");
-            }
-            else if ((windowRecord->hybridGraphics == 1) && (ati || rendergpuVendor == PCI_VENDOR_ID_AMD || rendergpuVendor == PCI_VENDOR_ID_ATI)) {
-                // Intel iGPU + AMD dGPU renderoffload on Linux 4.6 or later. All is fine on older AMD
-                // parts driven by radeon-kms. "Volcanic Islands" GCN 1.2+ gpus driven by amdgpu-kms
-                // need at least Linux 4.8.11 in order to provide proper fence sync
-                // under high load. Specifically the following patch is needed for amdgpu-kms:
-                // http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=8e94a46c1770884166b31adc99eba7da65a446a7
-                // The patch has been back-ported already to the Linux 4.8.11 kernel, and also by
-                // Canonical's kernel team to their upcoming Ubuntu-4.8.0-29.31 kernel for Ubuntu 16.10
-                // and the future Ubuntu 16.04.2-LTS HWE-1 stack:
-                // http://kernel.ubuntu.com/git/ubuntu/ubuntu-yakkety.git/commit/?h=master-next&id=d8ae64bcc02ff9e1c171539bdea55640ef53a1eb
-
-                // Probe if amdgpu-kms driver modules is loaded:
-                FILE *amdgpu = fopen("/sys/module/amdgpu", "r");
-                if (amdgpu) {
-                    // Yes, dGPU is driven by amdgpu-kms.
-                    fclose(amdgpu);
-
-                    if (verbose) printf("PTB-DEBUG: Render gpu driven by amdgpu-kms. Checking required kernel version...\n");
-
-                    if (major == 4 && minor == 8 && patchlevel == 0) {
-                        char extraversionsignature[512];
-                        // Kernel release 4.8.0 could mean a Ubuntu kernel, ie., an Ubuntu kernel
-                        // originally based on 4.8.0, but then maintained independent of mainline.
-                        // If so, then the /proc/version_signature file should exist and contain
-                        // the release of the mainline kernel on which the Ubuntu 4.8.0-XXX kernel
-                        // is based. Ubuntu 16.10 "Yaketty Yak", and Ubuntu 16.04.2-LTS HWE kernel
-                        // are based on 4.8.0, so lets handle this Ubuntu specific special case.
-                        // Is this a Ubuntu distro kernel?
-                        FILE* fd = fopen("/proc/version_signature", "rt");
-                        if (fd && fgets(extraversionsignature, sizeof(extraversionsignature), fd)) {
-                            // Seems so. Find signature of the stable kernel on which this one is based:
-                            if (strstr(extraversionsignature, "Ubuntu")) {
-                                // Ubuntu 4.8.0-X Yaketty kernel, based on 4.8.x upstream. Lets find out
-                                // on which upstream kernel it is based and use that for checking Prime
-                                // renderoffload capabilities:
-                                if (sscanf(extraversionsignature, "%*s %*s %i.%i.%i", &major, &minor, &patchlevel) == 3) {
-                                    if (verbose) printf("PTB-DEBUG: Ubuntu 4.8.0 Yaketty/16.04.2-LTS HWE-I kernel detected. Based on mainline kernel %i.%i.%i. Using this for detection.\n",
-                                                        major, minor, patchlevel);
-                                }
-                                else {
-                                    printf("PTB-WARNING: Could not find mainline kernel version of this Ubuntu 4.8.0 based kernel. May misdetect AMD hybrid graphics capabilities!\n");
-                                }
-                            }
-                        }
-                        if (fd) fclose(fd);
-                    }
-
-                    // As of November 2016 we need kernel 4.8.11 or later, otherwise warn about potential display artifacts:
-                    if (major == 4 && minor < 9 && !(minor == 8 && patchlevel >= 11)) {
-                        printf("PTB-WARNING: This hybrid graphics setup uses a Intel iGPU for display and AMD dGPU for rendering, but your Linux kernel %i.%i.%i\n", major, minor, patchlevel);
-                        printf("PTB-WARNING: is too old to guarantee reliable visual stimulation. Upgrade to Linux version 4.8.11 or later for hybrid graphics support\n");
-                        printf("PTB-WARNING: without visual stimulation artifacts. On a Ubuntu flavor, upgrade to at least Ubuntu Linux kernel 'Ubuntu-4.8.0-29.31'.\n");
-                    }
-                }
-            }
-        }
-    }
-    #endif
-
+    
     // Check if this is an open-source (Mesa/Gallium) graphics driver on Linux with X11
     // backend in use. If so, we must emit a single pixel write into the backbuffer, followed
     // by a pipeline glFlush after each scheduled double-buffer swap, all protected by the
@@ -7195,7 +6548,7 @@ void PsychDetectAndAssignGfxCapabilities(PsychWindowRecordType *windowRecord)
     // for RGBA8 textures when using the standard optimized settings?
     // As far as we know (June 2008), ATI hardware under MS-Windows and Linux has this driver bugs,
     // at least on X1600 mobile and X1300 desktop:
-    if ((PSYCH_SYSTEM == PSYCH_WINDOWS || PSYCH_SYSTEM == PSYCH_LINUX) && ati) {
+    if (PSYCH_SYSTEM == PSYCH_WINDOWS  && ati) {
         // Supposedly: Set the special flag that will trigger alternative parameter selection
         // in PsychCreateTexture():
         windowRecord->gfxcaps |= kPsychGfxCapNeedsUnsignedByteRGBATextureUpload;
@@ -7326,28 +6679,6 @@ void PsychDetectAndAssignGfxCapabilities(PsychWindowRecordType *windowRecord)
                     windowRecord->gfxcaps |= kPsychGfxCapFPFilter16;
                     windowRecord->gfxcaps |= kPsychGfxCapFPFilter32;
                 }
-
-                // Running on Linux + Mesa OpenGL driving an AMD R600 gpu or later, and thereby possibly a
-                // AMD GCN gpu controlled by the Mesa Gallium radeonsi gfx-driver? If so then we need a workaround
-                // for a radeonsi bug present in Mesa versions 18.1, 18.2, and early versions of Mesa 18.3.x.
-                // The bug is fixed upstream for Mesa 19+ and for Mesa 18.3.2+, so the workaround is used for
-                // Mesa 18.1.0 - Mesa 18.3.1.
-                //
-                // The bug is that 1 component 1D or 2 component 2D vertex attributes submitted via VBO's or VAO's,
-                // e.g., via glTexCoordPointer() or similar will not get transmitted to GLSL vertex shaders properly
-                // iff user data type GL_DOUBLE is used. E.g., glTexCoordPointer(1, GL_DOUBLE, ...) will result in
-                // reception of corrupted gl_MultiTexCoordX.x values. This can be avoided by using GL_FLOAT as input
-                // data type, e.g., glTexCoordPointer(1, GL_FLOAT, ...) or using the experimental NIR shader backend
-                // (setenv R600_DEBUG=nir). Set the specialflags flag kPsychNeedVBODouble12Workaround to signal this
-                // bug. Atm. only Screen('DrawDots') needs to work around the bug if smooth/round point rendering or
-                // shader based rendering is requested (dot_type > 0) and different point sizes are used for individual
-                // dots.
-                if ((PSYCH_SYSTEM == PSYCH_LINUX) && strstr(windowRecord->gpuCoreId, "R600") &&
-                    (mesaversion[0] == 18) && (mesaversion[1] > 0) && ((mesaversion[1] < 3) || (mesaversion[2] < 2))) {
-                    if (verbose)
-                        printf("Potential AMD GCN gpu on Linux with potentially buggy Mesa Gallium radeonsi driver. Enabling 'DrawDots' workaround.\n");
-                    windowRecord->specialflags |= kPsychNeedVBODouble12Workaround;
-                }
             }
         }
 
@@ -7410,7 +6741,7 @@ void PsychDetectAndAssignGfxCapabilities(PsychWindowRecordType *windowRecord)
     // smoothing. Modern AMD hardware supports point smoothing with the proprietary amdgpu-pro driver.
     // Check for OpenGL version 4 as a sign of a modern enough AMD gpu, as we don't want shader-based
     // in the driver:
-    if ((PSYCH_SYSTEM != PSYCH_LINUX) || nvidia ||
+    if ( nvidia ||
         (strstr((char*) glGetString(GL_VENDOR), "ATI") && strstr((char*) glGetString(GL_VERSION), "Compatibility Profile") && !strncmp((char*) glGetString(GL_VERSION), "4.", 2))) {
         if (verbose) printf("Assuming hardware supports native OpenGL primitive smoothing (points, lines).\n");
         windowRecord->gfxcaps |= kPsychGfxCapSmoothPrimitives;
@@ -7475,123 +6806,16 @@ void PsychDetectAndAssignGfxCapabilities(PsychWindowRecordType *windowRecord)
         }
     }
 
-    #ifdef GLX_OML_sync_control
-    #ifndef PTB_USE_WAFFLE
-    // Running on a XServer prior to version 1.8.2 with broken OpenML implementation? Mark it, if so:
-    if (PsychPrefStateGet_Verbosity() > 4) {
-        PsychLockDisplay();
-        printf("PTB-Info: Running on '%s' XServer, Vendor release %i.\n", XServerVendor(windowRecord->targetSpecific.deviceContext), (int) XVendorRelease(windowRecord->targetSpecific.deviceContext));
-        PsychUnlockDisplay();
-    }
 
-    if (verbose) {
-        printf("OML_sync_control indicators: glXGetSyncValuesOML=%p , glXWaitForMscOML=%p, glXWaitForSbcOML=%p, glXSwapBuffersMscOML=%p\n",
-                glXGetSyncValuesOML, glXWaitForMscOML, glXWaitForSbcOML, glXSwapBuffersMscOML);
-        printf("OML_sync_control indicators: glxewIsSupported() says %i.\n", (int) glxewIsSupported("GLX_OML_sync_control"));
-        printf("OML_sync_control indicators: glXQueryExtensionsString() says %i.\n",
-               !!((long) strstr(glXQueryExtensionsString(windowRecord->targetSpecific.deviceContext, PsychGetXScreenIdForScreen(windowRecord->screenNumber)), "GLX_OML_sync_control")));
-    }
+    // OpenML unsupported:
+    if (verbose) printf("No compiled in support for OpenML OML_sync_control extension.\n");
 
-    // Check if OpenML extensions for precisely scheduled stimulus onset and onset timestamping are supported:
-    if (glxewIsSupported("GLX_OML_sync_control") && (glXGetSyncValuesOML && glXWaitForMscOML && glXWaitForSbcOML && glXSwapBuffersMscOML) &&
-        strstr(glXQueryExtensionsString(windowRecord->targetSpecific.deviceContext, PsychGetXScreenIdForScreen(windowRecord->screenNumber)), "GLX_OML_sync_control")) {
-    #else
-    // Disable this whole code-path if PTB_USE_WAFFLE:
-    if (FALSE) {
-    #endif
-        if (verbose) printf("System supports OpenML OML_sync_control extension for high-precision scheduled swaps and timestamping.\n");
+    // OpenML timestamping in PsychOSGetSwapCompletionTimestamp() and PsychOSGetVBLTimeAndCount() disabled:
+    windowRecord->specialflags |= kPsychOpenMLDefective;
 
-        // If prior 1.8.2 and therefore defective, disable use of OpenML for anything, even timestamping:
-        PsychLockDisplay();
-        if (XVendorRelease(windowRecord->targetSpecific.privDpy) < 10802000) {
-            PsychUnlockDisplay();
-            // OpenML timestamping in PsychOSGetSwapCompletionTimestamp() and PsychOSGetVBLTimeAndCount() disabled:
-            windowRecord->specialflags |= kPsychOpenMLDefective;
+    // OpenML swap scheduling in PsychFlipWindowBuffers() disabled:
+    windowRecord->gfxcaps &= ~kPsychGfxCapSupportsOpenML;
 
-            // OpenML swap scheduling in PsychFlipWindowBuffers() disabled:
-            windowRecord->gfxcaps &= ~kPsychGfxCapSupportsOpenML;
-
-            if (PsychPrefStateGet_Verbosity() > 1) {
-                printf("PTB-WARNING: XServer version prior to 1.8.2 with defective OpenML OML_sync_control implementation detected! Disabling all OpenML support.\n");
-            }
-        }
-        else {
-            PsychUnlockDisplay();
-            // OpenML is currently only supported on GNU/Linux, but should be pretty well working/useable
-            // starting with Linux kernel 2.6.35 and XOrg X-Servers 1.8.2, 1.9.x and later, as shipping
-            // in the Ubuntu 10.10 release in October 2010 and other future distributions.
-            // PTB will use OpenML scheduling if supported and found to be correctly working, but the
-            // kPsychDisableOpenMLScheduling conserveVRAM flag allows to force it off and fall back to
-            // conventional PTB scheduling.
-            if (!(PsychPrefStateGet_ConserveVRAM() & kPsychDisableOpenMLScheduling)) {
-                // Enabled and supported: Use it.
-                windowRecord->gfxcaps |= kPsychGfxCapSupportsOpenML;
-                if (verbose) printf("OpenML OML_sync_control extension enabled for all scheduled swaps.\n");
-
-                // Perform correctness check and enable all relevant workarounds. We know that OpenML
-                // currently is only supported on Linux/X11 with some DRI2 drivers, and that the shipping
-                // DRI implementation up to and including Linux 2.6.36 does have a limitation that we need to detect
-                // and workaround. Therefore we restrict this test & setup routine to Linux:
-                #if PSYCH_SYSTEM == PSYCH_LINUX
-                // Perform baseline init and correctness check:
-                PsychOSInitializeOpenML(windowRecord);
-                #endif
-            }
-        }
-    }
-    else {
-        // OpenML unsupported:
-        if (verbose) printf("No support for OpenML OML_sync_control extension.\n");
-
-        // OpenML timestamping in PsychOSGetSwapCompletionTimestamp() and PsychOSGetVBLTimeAndCount() disabled:
-        windowRecord->specialflags |= kPsychOpenMLDefective;
-
-        // OpenML swap scheduling in PsychFlipWindowBuffers() disabled:
-        windowRecord->gfxcaps &= ~kPsychGfxCapSupportsOpenML;
-    }
-    #else
-        // Make sure we don't compile without OML_sync_control support on Linux, as that would be a shame:
-        #if PSYCH_SYSTEM == PSYCH_LINUX
-        #error Build aborted. You *must* compile with the -std=gnu99  gcc compiler switch to enable the required OML_sync_control extension!
-        #endif
-
-        // OpenML unsupported:
-        if (verbose) printf("No compiled in support for OpenML OML_sync_control extension.\n");
-
-        // OpenML timestamping in PsychOSGetSwapCompletionTimestamp() and PsychOSGetVBLTimeAndCount() disabled:
-        windowRecord->specialflags |= kPsychOpenMLDefective;
-
-        // OpenML swap scheduling in PsychFlipWindowBuffers() disabled:
-        windowRecord->gfxcaps &= ~kPsychGfxCapSupportsOpenML;
-    #endif
-
-    #if (PSYCH_SYSTEM == PSYCH_LINUX) && !defined(PTB_USE_WAFFLE)
-    PsychLockDisplay();
-    if (strstr(glXQueryExtensionsString(windowRecord->targetSpecific.deviceContext, PsychGetXScreenIdForScreen(windowRecord->screenNumber)), "GLX_EXT_buffer_age")) {
-        // Age queries for current backbuffer supported:
-        if (verbose) printf("System supports backbuffer age queries.\n");
-        windowRecord->gfxcaps |= kPsychGfxCapSupportsBufferAge;
-
-        // Is this a pre NV-50 gpu (GeForce 7xxx or earlier)? If so we don't use buffer age queries,
-        // because quite a few of the NVidia proprietary graphics drivers for these old gpus do have
-        // bugs in their query mechanism that could cause us to spew a lot of false positive about
-        // broken visual stimulation timing. NV-50 and later have well working drivers available:
-        if ((gpuMaintype == kPsychGeForce) && (gpuMinortype > 0x0) && (gpuMinortype < 0x50)) {
-            windowRecord->gfxcaps &= ~kPsychGfxCapSupportsBufferAge;
-            if (verbose) printf("Not using backbuffer age queries due to pre NV-50 NVidia gpu with potentially problematic driver wrt. this feature.\n");
-        }
-    }
-    PsychUnlockDisplay();
-    #endif
-
-    // If we are on Linux + Waffle backend, we call PsychOSInitializeOpenML()
-    // anyway. It may use any "OpenML equivalent" of a given backend to do
-    // the job of OpenML. On most backends it will no-op, on Wayland it will
-    // try to use its new presentation extension for swap scheduling and
-    // completion timestamping:
-    #if (PSYCH_SYSTEM == PSYCH_LINUX) && defined(PTB_USE_WAFFLE)
-        PsychOSInitializeOpenML(windowRecord);
-    #endif
 
     if (verbose) printf("PTB-DEBUG: Interrogation done.\n\n");
 
@@ -7735,14 +6959,6 @@ void PsychLockedTouchFramebufferIfNeeded(PsychWindowRecordType *windowRecord)
             fflush(NULL);
         }
 
-        // Touch the framebuffer for framebuffer revalidation roundtrip to X-Server,
-        // with the display lock held, to make future access to this onscreen windows
-        // framebuffer thread-safe on XLib:
-        #if PSYCH_SYSTEM == PSYCH_LINUX
-            PsychLockDisplay();
-            PsychWaitPixelSyncToken(windowRecord, TRUE);
-            PsychUnlockDisplay();
-        #endif
     }
 }
 

@@ -186,7 +186,6 @@ PsychError SCREENTextStyle(void);
 PsychError SCREENTextFont(void);
 PsychError SCREENTextBounds(void);
 PsychError SCREENTextTransform(void);
-PsychError SCREENDrawText(void);
 PsychError SCREENTextColor(void);
 PsychError SCREENPreference(void);
 PsychError SCREENDrawTexture(void);

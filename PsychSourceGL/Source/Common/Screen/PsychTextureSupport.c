@@ -136,9 +136,6 @@ void PsychInitWindowRecordTextureFields(PsychWindowRecordType *win)
 
 void PsychCreateTexture(PsychWindowRecordType *win)
 {
-    #if PSYCH_SYSTEM == PSYCH_OSX
-    GLenum textureHint;
-    #endif
     GLenum texturetarget, oldtexturetarget = GL_TEXTURE_RECTANGLE_EXT;
     double sourceWidth, sourceHeight;
     GLint glinternalFormat = 0, gl_realinternalformat = 0;
@@ -200,16 +197,6 @@ void PsychCreateTexture(PsychWindowRecordType *win)
     glBindTexture(texturetarget, win->textureNumber);
 
     // Setup texture parameters like optimization, storage format et al.
-
-    // Choose the texture acceleration extension out of GL_STORAGE_PRIVATE_APPLE, GL_STORAGE_CACHED_APPLE, GL_STORAGE_SHARED_APPLE
-    // We normally use CACHED storage for caching textures in gfx-cards VRAM for high-perf drawing,
-    // but if user explicitely requests client storage for saving VRAM memory, we do so and
-    // use SHARED storage in system RAM --> Slower but saves VRAM memory.
-    #if PSYCH_SYSTEM == PSYCH_OSX
-        textureHint= (clientstorage) ? GL_STORAGE_SHARED_APPLE : GL_STORAGE_CACHED_APPLE;
-        glTexParameteri(texturetarget, GL_TEXTURE_STORAGE_HINT_APPLE , textureHint);
-        glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, (clientstorage) ? GL_TRUE : GL_FALSE);
-    #endif
 
     // Not using GL_STORAGE_SHARED_APPLE provided increased reliability of timing and significantly shorter rendering times
     // when testing with a G5-Mac with 1.6Ghz CPU and 256 MB RAM, MacOS-X 10.3.7, using 12 textures of 800x800 pixels each.
@@ -1055,16 +1042,6 @@ void PsychBlitTextureToDisplay(PsychWindowRecordType *source, PsychWindowRecordT
         PsychSetShader(target, 0);
     }
     else {
-        #if PSYCH_SYSTEM == PSYCH_OSX
-            // On OS-X we can query the OS if the bound shader is running on the GPU or if it is running in emulation mode on the CPU.
-            // This is an expensive operation - it triggers OpenGL internal state revalidation. Only use for debugging and testing!
-            if (PsychPrefStateGet_Verbosity() > 10) {
-                GLint vsgpu=0, fsgpu=0;
-                CGLGetParameter(CGLGetCurrentContext(), kCGLCPGPUVertexProcessing, &vsgpu);
-                CGLGetParameter(CGLGetCurrentContext(), kCGLCPGPUFragmentProcessing, &fsgpu);
-                printf("PTB-DEBUG: In Screen('DrawTexture') aka PsychBlitTextureToDisplay():  GPU shading state: Vertex processing on %s : Fragment processing on %s.\n", (vsgpu) ? "GPU" : "CPU!!", (fsgpu) ? "GPU" : "CPU!!");
-            }
-        #endif
     }
 
     if (PsychIsGLClassic(source)) {
@@ -1707,18 +1684,6 @@ void PsychBatchBlitTexturesToDisplay(unsigned int opMode, unsigned int count, Ps
         // Test for standard case: No shader requested for this texture. In that case we make sure that really no shader is bound.
         if (shader == 0) {
             PsychSetShader(target, 0);
-        }
-        else {
-            #if PSYCH_SYSTEM == PSYCH_OSX
-            // On OS-X we can query the OS if the bound shader is running on the GPU or if it is running in emulation mode on the CPU.
-            // This is an expensive operation - it triggers OpenGL internal state revalidation. Only use for debugging and testing!
-            if (PsychPrefStateGet_Verbosity() > 10) {
-                GLint vsgpu=0, fsgpu=0;
-                CGLGetParameter(CGLGetCurrentContext(), kCGLCPGPUVertexProcessing, &vsgpu);
-                CGLGetParameter(CGLGetCurrentContext(), kCGLCPGPUFragmentProcessing, &fsgpu);
-                printf("PTB-DEBUG: In Screen('DrawTextures') aka PsychBatchBlitTexturesToDisplay():  GPU shading state: Vertex processing on %s : Fragment processing on %s.\n", (vsgpu) ? "GPU" : "CPU!!", (fsgpu) ? "GPU" : "CPU!!");
-            }
-            #endif
         }
 
         textureNumber = source->textureNumber;

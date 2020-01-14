@@ -23,10 +23,6 @@
 
 #include "Screen.h"
 
-#if PSYCH_SYSTEM == PSYCH_OSX
-double PsychCocoaGetBackingStoreScaleFactor(void* window);
-#endif
-
 // Pointer to master onscreen window during setup phase of stereomode 10 (Dual-window stereo):
 static PsychWindowRecordType* sharedContextWindow = NULL;
 
@@ -195,7 +191,7 @@ PsychError SCREENOpenWindow(void)
     PsychInitDepthStruct(&possibleDepths); //get the possible depths
     PsychGetScreenDepths(screenNumber, &possibleDepths);
 
-    #if PSYCH_SYSTEM == PSYCH_OSX || PSYCH_SYSTEM == PSYCH_WINDOWS
+    #if PSYCH_SYSTEM == PSYCH_WINDOWS
         // MK Experimental Hack: Add the special depth values 64 and 128 to the depth struct. This should
         // allows for 16 bpc, 32 bpc floating point color buffers on the latest ATI and NVidia hardware.
         // "Should" means: It doesn't really work with any current driver, but we leave the testcode in
@@ -261,29 +257,7 @@ PsychError SCREENOpenWindow(void)
     isArgThere=PsychCopyInRectArg(kPsychUseDefaultArgPosition, FALSE, rect );
     if (IsPsychRectEmpty(rect)) PsychErrorExitMsg(PsychError_user, "OpenWindow called with invalid (empty) rect argument.");
 
-    if (PSYCH_SYSTEM == PSYCH_OSX) {
-        // OS/X system: Need to decide if we use desktop composition or not:
-
-        // Default to not capturing the display, capture it if below constraints are met:
-        dontCaptureScreen = TRUE;
-
-        // Window rect provided which has a different size than screen?
-
-        // We do not use windowed mode if the provided window rectangle either
-        // matches the target screens rectangle (and therefore its exact size)
-        // or its screens global rectangle.
-        PsychGetScreenRect(screenNumber, screenrect);
-        if (PsychMatchRect(screenrect, rect)) dontCaptureScreen=FALSE;
-        PsychGetGlobalScreenRect(screenNumber, screenrect);
-        if (PsychMatchRect(screenrect, rect)) dontCaptureScreen=FALSE;
-
-		// Override for use on f$%#$Fd OS/X 10.5.3 - 10.5.6 with NVidia GF 8800 GPU's:
-		if (PsychPrefStateGet_ConserveVRAM() & kPsychUseAGLCompositorForFullscreenWindows) dontCaptureScreen = TRUE;
-	}
-	else {
-		// Non OS/X system: Do not use AGL ;-)
-		dontCaptureScreen = FALSE;
-	}
+	dontCaptureScreen = FALSE;
 	
     //find the number of specified buffers. 
 
@@ -684,18 +658,6 @@ PsychError SCREENOpenWindow(void)
         windowRecord->panelFitterParams[10]= windowRecord->panelFitterParams[7]/2; // rotation center Y.
     }
 
-    // On OS-X, if we are in quad-buffered frame sequential stereo mode, we automatically generate
-    // blue-line-sync style sync lines for use with stereo shutter glasses. We don't do this
-    // by default on Windows or Linux: These systems either don't have stereo capable hardware,
-    // or they have some and its drivers already take care of sync signal generation.
-    if (((PSYCH_SYSTEM == PSYCH_OSX) && (windowRecord->stereomode == kPsychOpenGLStereo)) || (windowRecord->stereomode == kPsychFrameSequentialStereo)) {
-        if (PsychPrefStateGet_Verbosity()>3) printf("PTB-INFO: Enabling internal blue line sync renderer for quad-buffered stereo...\n");
-        PsychPipelineAddBuiltinFunctionToHook(windowRecord, "LeftFinalizerBlitChain", "Builtin:RenderStereoSyncLine", INT_MAX, "");
-        PsychPipelineEnableHook(windowRecord, "LeftFinalizerBlitChain");
-        PsychPipelineAddBuiltinFunctionToHook(windowRecord, "RightFinalizerBlitChain", "Builtin:RenderStereoSyncLine", INT_MAX, "");
-        PsychPipelineEnableHook(windowRecord, "RightFinalizerBlitChain");
-    }
-
     // Running on native Wayland backend? Then set up transparent window via
     // finalizer chain alpha blending tricks - essentially alpha-postmultiply:
     #ifdef PTB_USE_WAYLAND
@@ -795,46 +757,6 @@ PsychError SCREENOpenWindow(void)
     // Only needed on macOS atm.
     windowRecord->internalMouseMultFactor = 1.0;
     windowRecord->externalMouseMultFactor = 1.0;
-
-    #if PSYCH_SYSTEM == PSYCH_OSX
-        // Cocoa or CGL?
-        if (windowRecord->targetSpecific.windowHandle) {
-            // Cocoa:
-            double isf = PsychCocoaGetBackingStoreScaleFactor(windowRecord->targetSpecific.windowHandle);
-
-            if (PsychPrefStateGet_Verbosity() > 3)
-                printf("PTB-INFO: Cocoa + Retina scaling. Scaling factor is %fx.\n", isf);
-
-            if (windowRecord->imagingMode & kPsychNeedGPUPanelFitter) {
-                // Cocoa + Panelfitter enabled:
-                windowRecord->internalMouseMultFactor = 1.0;
-                windowRecord->externalMouseMultFactor = isf;
-            }
-            else {
-                // Cocoa with Panelfitter off:
-                windowRecord->internalMouseMultFactor = isf;
-                windowRecord->externalMouseMultFactor = 1.0;
-            }
-        }
-        else {
-            // CGL:
-            if (windowRecord->imagingMode & kPsychNeedGPUPanelFitter) {
-                // CGL with Panelfitter enabled:
-                double autoscale = (double) nativewidth / (double) frontendwidth;
-
-                if (PsychPrefStateGet_Verbosity() > 3)
-                    printf("PTB-INFO: CGL + Retina scaling. Auto scale factor is %fx.\n", autoscale);
-
-                windowRecord->internalMouseMultFactor = 1 / autoscale;
-                windowRecord->externalMouseMultFactor = autoscale;
-            }
-            else {
-                // CGL with Panelfitter off:
-                windowRecord->internalMouseMultFactor = 1.0;
-                windowRecord->externalMouseMultFactor = 1.0;
-            }
-        }
-    #endif
 
     //Return the window index and the rect argument.
     //PsychCopyOutDoubleArg(1, FALSE, windowRecord->windowIndex);
