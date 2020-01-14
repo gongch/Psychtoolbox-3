@@ -25,15 +25,12 @@ const PsychTextDrawingModeType PsychTextDrawingModes[]= {kPsychTextFill, kPsychT
 
 void PsychInitTextRecordSettings(PsychTextAttributes *settings)
 {
-    const char* tryFontName;
-    PsychPrefStateGet_DefaultFontName(&tryFontName);
+    const char* tryFontName = "";
     settings->textMode=kPsychTextFill;
     settings->textPositionX=0;
     settings->textPositionY=0;
     // We use a different textSize (18 vs. 12) on Windoofs to compensate for its broken text renderer.
     // We also compensate for more MS-Braindamage by selecting bold text by default.
-    settings->textSize= PsychPrefStateGet_DefaultTextSize();
-    settings->textStyle= PsychPrefStateGet_DefaultTextStyle();	// 0=normal,1=bold,2=italic,4=underline,8=outline,32=condense,64=extend
 
     strcpy(settings->textFontName, tryFontName);
     settings->textFontNumber=0; // Unused on Windows.

@@ -42,24 +42,10 @@
 #define PTB_DEFAULTVIDCAPENGINE 3
 
 
-#if PSYCH_SYSTEM == PSYCH_WINDOWS
-#define INITIAL_DEFAULT_FONT_NAME       "Arial"
-#define INITIAL_DEFAULT_FONT_SIZE       24
-#define INITIAL_DEFAULT_FONT_STYLE      0
-#endif
-
 //PsychTable preference state
 static int                              psychTableVersion;              //there is no psych table yet, this is provided for the future.
 static char                             PsychTableCreator[]="Screen";   //there is no psych table yet, this is provided for the future.
-//Text preference state
-static int                              defaultTextYPositionIsBaseline; // Use new style of text positioning by default: y-pos is top of text.
-#define MAX_DEFAULT_FONT_NAME_LENGTH    256
-static char                             defaultFontName[MAX_DEFAULT_FONT_NAME_LENGTH];
-static int                              defaultTextSize;
-static int                              defaultTextStyle;               // 0=normal,1=bold,2=italic,4=underline,8=outline,32=condense,64=extend
-static psych_bool                       textAlphaBlending;
-static int                              textAntiAliasing;               // -1=System defined (don't care), 0=Always off, 1=Always on.
-static int                              textRenderer;                   // 0=Default OS specific (fast one), 1=OS specific High quality.
+
 static int                              screenSkipSyncTests;            // 0=Do full synctests, abort on failure, 1=Reduced tests, continue with warning, 2=Skip'em
 //Debug preference state
 static psych_bool                       TimeMakeTextureFlag;
@@ -95,8 +81,6 @@ static double                           sync_maxDeviation;              // Maxim
 static double                           sync_maxDuration;               // Maximum duration of a calibration run in seconds.
 static int                              sync_minSamples;                // Minimum number of valid measurement samples needed.
 
-static int                              useGStreamer;                   // Use GStreamer for multi-media processing? 1==yes.
-
 //All state checking goes through accessors located in this file.
 
 // Called by Screen init code first: Sets up all default values after a
@@ -106,12 +90,6 @@ void PrepareScreenPreferences(void)
     //set the fake psych table version
     psychTableVersion=20;
     sprintf(PsychTableCreator, "Screen");
-    defaultTextYPositionIsBaseline=0;
-    defaultTextSize=INITIAL_DEFAULT_FONT_SIZE;
-    defaultTextStyle=INITIAL_DEFAULT_FONT_STYLE;
-    textAlphaBlending=FALSE;
-    textAntiAliasing=-1;
-    textRenderer=PTB_DEFAULT_TEXTRENDERER;
     screenSkipSyncTests=0;
     TimeMakeTextureFlag=FALSE;
     screenVisualDebugLevel=4;
@@ -139,18 +117,6 @@ void PrepareScreenPreferences(void)
     // measured duration and reference duration (os reported or other), at most 5 seconds
     // worst-case duration per calibration run:
     PsychPrefStateSet_SynctestThresholds(0.000200, 50, 0.1, 5);
-
-    // Initialize our locale setting for multibyte/singlebyte to unicode character conversion
-    // for Screen('DrawText') et al. to be the current default system locale, as defined by
-    // system settings and environment variables at startup of Matlab/Octave:
-    // N.B. This function is special as the affected state setting and routines are not defined
-    // here, but inside the Screen text handling routines, currently in SCREENDrawText.c
-    PsychSetUnicodeTextConversionLocale("");
-    PsychPrefStateSet_DefaultFontName(INITIAL_DEFAULT_FONT_NAME);
-
-    // Don't use GStreamer by default on 32-bit builds for OS/X and Windows:
-    PsychPrefStateSet_UseGStreamer(0);
-
     return;
 }
 
@@ -174,98 +140,6 @@ preference: PsychTableCreator
 const char *PsychPrefStateGet_PsychTableCreator(void)
 {
     return(PsychTableCreator);
-}
-
-//****************************************************************************************************************
-//Text and Font preferences
-
-// If set to true, then the y-position specified in Screen('DrawText') defines
-// the baseline of the text, not the top of the text. Default is off -> top of text.
-// The default changes to 'on' -> Baseline if emulation of old PTB enabled on OS-X.
-// This setting can be overriden case-by-case with the optional 7th argument to 'DrawText':
-int PsychPrefStateGet_TextYPositionIsBaseline(void)
-{
-    return(defaultTextYPositionIsBaseline);
-}
-
-void PsychPrefStateSet_TextYPositionIsBaseline(int textPosIsBaseline)
-{
-    defaultTextYPositionIsBaseline = (textPosIsBaseline > 0) ? 1 : 0;
-}
-
-int PsychPrefStateGet_TextAntiAliasing(void)
-{
-    return(textAntiAliasing);
-}
-
-void PsychPrefStateSet_TextAntiAliasing(int mode)
-{
-    textAntiAliasing = mode;
-}
-
-int PsychPrefStateGet_TextRenderer(void)
-{
-    return(textRenderer);
-}
-
-void PsychPrefStateSet_TextRenderer(int mode)
-{
-    textRenderer = mode;
-}
-
-/*
-preference: DefaultFontName
-*/
-void PsychPrefStateGet_DefaultFontName(const char **fontName )
-{
-    *fontName=defaultFontName;
-}
-
-
-void PsychPrefStateSet_DefaultFontName(const char *newName)
-{
-    if(strlen(newName)+1 > MAX_DEFAULT_FONT_NAME_LENGTH)
-        PsychErrorExitMsg(PsychError_user, "Attempt to set a default font name using a string >255 characters");
-    strcpy(defaultFontName, newName);
-}
-
-/*
-preference: DefaultTextSize
-*/
-int PsychPrefStateGet_DefaultTextSize(void)
-{
-    return(defaultTextSize);
-}
-
-void PsychPrefStateSet_DefaultTextSize(int textSize)
-{
-    defaultTextSize=textSize;
-}
-
-/*
-preference: DefaultTextStyle
-*/
-int PsychPrefStateGet_DefaultTextStyle(void)
-{
-    return(defaultTextStyle);
-}
-
-void PsychPrefStateSet_DefaultTextStyle(int textStyle)
-{
-    defaultTextStyle=textStyle;
-}
-
-/*
-preference: TextAlphaBlending
-*/
-psych_bool PsychPrefStateGet_TextAlphaBlending(void)
-{
-    return(textAlphaBlending);
-}
-
-void PsychPrefStateSet_TextAlphaBlending(psych_bool enableFlag)
-{
-    textAlphaBlending=enableFlag;
 }
 
 // Screen self-test and calibration preferences for syncing to VBL and such...
@@ -453,16 +327,6 @@ int PsychPrefStateGet_Verbosity(void)
 void PsychPrefStateSet_Verbosity(int level)
 {
     Verbosity = level;
-}
-
-void PsychPrefStateSet_UseGStreamer(int value)
-{
-    useGStreamer = value;
-}
-
-int PsychPrefStateGet_UseGStreamer(void)
-{
-    return(useGStreamer);
 }
 
 // Screen -> Head mappings: These are special, because the default

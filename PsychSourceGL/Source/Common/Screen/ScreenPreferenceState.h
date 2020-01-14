@@ -43,28 +43,6 @@ psych_bool PsychIsPsychMatchCaseSensitive(void);
 int PsychPrefStateGet_PsychTableVersion(void);
 const char *PsychPrefStateGet_PsychTableCreator(void);
 
-//Text and Font preferences
-int  PsychPrefStateGet_TextYPositionIsBaseline(void);
-void PsychPrefStateSet_TextYPositionIsBaseline(int textPosIsBaseline);
-
-int PsychPrefStateGet_TextAntiAliasing(void);
-void PsychPrefStateSet_TextAntiAliasing(int mode);
-
-int PsychPrefStateGet_TextRenderer(void);
-void PsychPrefStateSet_TextRenderer(int mode);
-
-void PsychPrefStateGet_DefaultFontName(const char **fontName);
-void PsychPrefStateSet_DefaultFontName(const char *newName);
-
-int PsychPrefStateGet_DefaultTextSize(void);
-void PsychPrefStateSet_DefaultTextSize(int textSize);
-
-int PsychPrefStateGet_DefaultTextStyle(void);
-void PsychPrefStateSet_DefaultTextStyle(int textStyle);
-
-psych_bool PsychPrefStateGet_TextAlphaBlending(void);
-void PsychPrefStateSet_TextAlphaBlending(psych_bool enableFlag);
-
 // Screen self-test and calibration preferences.  
 int PsychPrefStateGet_SkipSyncTests(void);
 void PsychPrefStateSet_SkipSyncTests(int level);
@@ -118,10 +96,6 @@ double PsychPrefStateGet_FrameRectCorrection(void);
 // Tweakable parameters for VBL sync tests and refresh rate calibration:
 void PsychPrefStateSet_SynctestThresholds(double maxStddev, int minSamples, double maxDeviation, double maxDuration);
 void PsychPrefStateGet_SynctestThresholds(double* maxStddev, int* minSamples, double* maxDeviation, double* maxDuration);
-
-// Shall GStreamer be used instead of Quicktime on 32-bit Windows or OS/X?
-void PsychPrefStateSet_UseGStreamer(int value);
-int PsychPrefStateGet_UseGStreamer(void);
 
 // Modify/Get screenid -> gpu head mapping:
 void PsychPrefStateSet_ScreenToHead(int screenId, int headId, int crtcId, int rankId);

@@ -8,6 +8,7 @@ extern "C"{
 }
 int main()
 {
+	SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
 	PrepareScreenPreferences();
 	glInitNames();
 	PsychInitTimeGlue();

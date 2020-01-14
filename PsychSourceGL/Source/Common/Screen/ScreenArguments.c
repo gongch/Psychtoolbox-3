@@ -411,7 +411,7 @@ psych_bool PsychCopyInRectArg(int position, psych_bool required, PsychRectType r
 	//if(argSize!=4)
 	//	PsychErrorExitMsg(PsychError_invalidRectArg, "rect argument not 4 elements in size");
 	//memcpy(rect,rectArgMat,sizeof(PsychRectType));
-	rect[0] = 0;
+	rect[0] = 1920+300;
 	rect[1] = 0;
 	rect[2] = 400;
 	rect[3] = 300;
